@@ -1,0 +1,23 @@
+# Firebase cache & emulator logs
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+pitr-debug.log*
+
+# Node & build artifacts
+node_modules/
+dist/
+build/
+*.log
+.env
+.env.*
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+

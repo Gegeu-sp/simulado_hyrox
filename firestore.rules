@@ -1,0 +1,146 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Collection: hyrox_profiles
+// Document ID: {syncCode} (string, 3..40 characters, key-based athlete sync code)
+// Fields:
+//   - schemaVersion: int (required, fixed at 1) - Schema version of the sync snapshot
+//   - syncCode: string (required, immutable, matches document ID, 3..40 chars) - Athlete sync code
+//   - updatedAt: string (required, max 40 chars, ISO 8601 timestamp) - Last modification timestamp
+//   - selectedDayNum: int (required, 1..26) - Active microcycle day
+//   - divisionKey: string (required, enum: WOMEN_OPEN, MEN_OPEN, WOMEN_PRO, MEN_PRO) - Athlete division
+//   - athleteWeight: int|float (required, 35..200) - Athlete body weight in kg
+//   - goalPace: string (required, 4..8 chars, MM:SS format) - Target running pace per km
+//   - completedDays: map (required, max 30 keys) - Map of completed day flags ('1'..'26')
+//   - dayLogs: map (required, max 30 keys) - Map of daily RPE, duration, morningHR, and notes
+//   - oneRMs: map (required, max 15 keys) - Map of 1RM values for compound lifts
+//   - customPcts: map (required, max 20 keys) - Map of custom intensity percentages
+//   - roxzoneTargetSec: int (required, 12..60) - Target seconds per Roxzone transition
+//   - fractionationProfile: string (required, enum: SAFE_80_20, BALANCED_PARETO, ELITE_DENSITY)
+//   - deviceLabel: string (optional, max 80 chars) - Source device identifier
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidSyncCode(syncCode) {
+      return syncCode is string &&
+        syncCode.size() >= 3 &&
+        syncCode.size() <= 40;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in BOTH create and update)
+    // ===============================================================
+
+    function isValidAthleteSyncSnapshot(data, syncCode) {
+      return isValidSyncCode(syncCode) &&
+        hasRequiredFields([
+          'schemaVersion',
+          'syncCode',
+          'updatedAt',
+          'selectedDayNum',
+          'divisionKey',
+          'athleteWeight',
+          'goalPace',
+          'completedDays',
+          'dayLogs',
+          'oneRMs',
+          'customPcts',
+          'roxzoneTargetSec',
+          'fractionationProfile'
+        ]) &&
+        hasOnlyAllowedFields([
+          'schemaVersion',
+          'syncCode',
+          'updatedAt',
+          'selectedDayNum',
+          'divisionKey',
+          'athleteWeight',
+          'goalPace',
+          'completedDays',
+          'dayLogs',
+          'oneRMs',
+          'customPcts',
+          'roxzoneTargetSec',
+          'fractionationProfile',
+          'deviceLabel'
+        ]) &&
+        data.schemaVersion == 1 &&
+        data.syncCode is string &&
+        data.syncCode == syncCode &&
+        data.updatedAt is string &&
+        data.updatedAt.size() >= 10 &&
+        data.updatedAt.size() <= 40 &&
+        data.selectedDayNum is int &&
+        data.selectedDayNum >= 1 &&
+        data.selectedDayNum <= 26 &&
+        data.divisionKey in ['WOMEN_OPEN', 'MEN_OPEN', 'WOMEN_PRO', 'MEN_PRO'] &&
+        (data.athleteWeight is int || data.athleteWeight is float) &&
+        data.athleteWeight >= 35 &&
+        data.athleteWeight <= 200 &&
+        data.goalPace is string &&
+        data.goalPace.size() >= 4 &&
+        data.goalPace.size() <= 8 &&
+        data.completedDays is map &&
+        data.completedDays.size() <= 30 &&
+        data.dayLogs is map &&
+        data.dayLogs.size() <= 30 &&
+        data.oneRMs is map &&
+        data.oneRMs.size() <= 15 &&
+        data.customPcts is map &&
+        data.customPcts.size() <= 20 &&
+        data.roxzoneTargetSec is int &&
+        data.roxzoneTargetSec >= 12 &&
+        data.roxzoneTargetSec <= 60 &&
+        data.fractionationProfile in ['SAFE_80_20', 'BALANCED_PARETO', 'ELITE_DENSITY'] &&
+        isValidOptionalString('deviceLabel', 0, 80);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /hyrox_profiles/{syncCode} {
+      // Allow direct document lookup by syncCode only (no collection-wide list enumeration)
+      allow get: if isValidSyncCode(syncCode);
+      allow list: if false;
+
+      // Validate full schema on both create and update; disallow document deletion
+      allow create: if isValidAthleteSyncSnapshot(request.resource.data, syncCode);
+      allow update: if isValidAthleteSyncSnapshot(request.resource.data, syncCode) &&
+        request.resource.data.syncCode == resource.data.syncCode;
+      allow delete: if false;
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

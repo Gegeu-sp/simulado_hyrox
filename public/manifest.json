@@ -1,0 +1,19 @@
+{
+  "name": "HYROX Periodização",
+  "short_name": "HYROX Periodização",
+  "description": "HYROX Periodização • Motor Tático de Pareto 80/20, Piso de Força 1RM, 7 Gráficos Analíticos e Sincronização Web & Mobile",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#facc15",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
