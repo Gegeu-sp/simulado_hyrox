@@ -63,7 +63,11 @@ A aba **Analytics & Gráficos (7)** implementa um motor vetorial interativo em *
 
 Todas as atualizações estruturais e evolutivas do projeto são registadas abaixo:
 
-- **v1.3.1 (Atual) — Renomeação Oficial, Estabilização UMD/PWA & Integração GitHub**:
+- **v1.3.2 (Atual) — Correção de Inicialização, Pré-Compilação JS Nativa & Auto-Recuperação de Cache PWA (`004-fix-startup-reliability`)**:
+  - Correção do erro de inicialização (`ReferenceError: Cannot access 'formatTimer' before initialization` / *Temporal Dead Zone*) durante o cálculo síncrono do motor analítico;
+  - Pré-compilação integral do código JSX para JavaScript nativo (`React.createElement`), eliminando 100% da dependência de `@babel/standalone` em tempo de execução e reduzindo o tempo de arranque para `< 100ms`;
+  - Implementação de redundância tripla síncrona de CDNs (`jsDelivr` → `unpkg` → `Cloudflare cdnjs`), `HyroxErrorBoundary`, leitura defensiva de `localStorage` (`safeGetItem`/`safeGetJSON`) e auto-limpeza de caches antigos (`hyrox-periodizacao-pwa-v4`, estritamente *same-origin*).
+- **v1.3.1 — Renomeação Oficial, Estabilização UMD/PWA & Integração GitHub**:
   - Alteração do título oficial da aplicação para **HYROX Periodização**;
   - Substituição do carregador ESM por *runtime* React 18 UMD + ícones SVG vetoriais nativos embutidos, eliminando conflitos de instâncias em CDN e garantindo abertura imediata tanto no Firebase Hosting quanto localmente (`file://`);
   - Atualização do Service Worker (`hyrox-periodizacao-pwa-v3`) para estratégia *Network-First* com fallback *Offline*;
@@ -111,3 +115,7 @@ Todas as atualizações estruturais e evolutivas do projeto são registadas abai
 **Projeto desenvolvido por Argeu Rodrigues**  
 🎓 4º semestre de ADS na Faculdade Anhembi Morumbi  
 🏋️‍♂️ Personal Trainer | CREF: 158814-G/SP  
+
+- **LinkedIn**: [br.linkedin.com/in/argeu-rodrigues-9a6b7174](https://br.linkedin.com/in/argeu-rodrigues-9a6b7174)
+- **GitHub**: [https://github.com/Gegeu-sp](https://github.com/Gegeu-sp)
+
