@@ -96,3 +96,4 @@ Como utilizador, quero ver um indicador visual imediato enquanto a aplicação m
 - **SC-001**: Zero erros de sintaxe ou de execução JavaScript validados via compilação e teste automatizado em Node.js antes do deploy.
 - **SC-002**: Tempo de arranque da interface (`window.__HYROX_BOOTED__ === true`) inferior a **300ms** após o carregamento dos scripts base, com 0 bytes de `@babel/standalone` transferidos.
 - **SC-003**: Site publicado e ativo em `https://hyrox-simulado-26d.web.app/` e sincronizado no repositório GitHub `https://github.com/Gegeu-sp/simulado_hyrox.git`.
+
