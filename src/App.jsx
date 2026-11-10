@@ -902,6 +902,130 @@ const safeSetItem = (key, val) => {
   }
 };
 
+// ==========================================
+// MOTOR DE ZONAS DE CORRIDA (Z1 A Z5) & CONVERSÃO BIDIRECIONAL (KM/H <-> MIN/KM)
+// ==========================================
+
+const RUNNING_ZONES_META = {
+  Z1: {
+    id: 'Z1',
+    shortLabel: 'Zona 1 (Regen.)',
+    name: 'Z1 • Recuperação & Aquecimento',
+    hrPct: '55–65% FCmáx',
+    ratioToGRP: 0.78,
+    badgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+    textClass: 'text-sky-400',
+    hex: '#38bdf8'
+  },
+  Z2: {
+    id: 'Z2',
+    shortLabel: 'Zona 2 (Base Aeróbica)',
+    name: 'Z2 • Base Mitocondrial Nasal',
+    hrPct: '65–75% FCmáx',
+    ratioToGRP: 0.89,
+    badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    textClass: 'text-emerald-400',
+    hex: '#34d399'
+  },
+  Z3: {
+    id: 'Z3',
+    shortLabel: 'Zona 3 (Ritmo GRP)',
+    name: 'Z3 • Goal Race Pace (Prova HYROX)',
+    hrPct: '75–82% FCmáx',
+    ratioToGRP: 1.00,
+    badgeClass: 'bg-yellow-400/20 text-yellow-300 border-yellow-400/50',
+    textClass: 'text-yellow-400',
+    hex: '#facc15'
+  },
+  Z4: {
+    id: 'Z4',
+    shortLabel: 'Zona 4 (Limiar / Comp.)',
+    name: 'Z4 • Limiar Anaeróbico & Compromised',
+    hrPct: '82–89% FCmáx',
+    ratioToGRP: 1.05,
+    badgeClass: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+    textClass: 'text-orange-400',
+    hex: '#fb923c'
+  },
+  Z5: {
+    id: 'Z5',
+    shortLabel: 'Zona 5 (VO2máx)',
+    name: 'Z5 • Potência Aeróbica / Intervalos',
+    hrPct: '90–98% FCmáx',
+    ratioToGRP: 1.12,
+    badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+    textClass: 'text-rose-400',
+    hex: '#f43f5e'
+  }
+};
+
+const paceStrToSeconds = (paceStr, fallbackSec = 285) => {
+  if (typeof paceStr !== 'string' || !paceStr.includes(':')) return fallbackSec;
+  const parts = paceStr.trim().split(':');
+  const m = parseInt(parts[0], 10);
+  const s = parseInt(parts[1], 10);
+  if (isNaN(m) || isNaN(s) || m < 2 || m > 18 || s < 0 || s >= 60) return fallbackSec;
+  return m * 60 + s;
+};
+
+const secondsToPaceStr = (totalSec) => {
+  const safe = Math.max(120, Math.min(1080, Math.round(Number(totalSec) || 285)));
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+const paceSecToKmh = (paceSec) => {
+  const safe = Math.max(120, Math.min(1080, Number(paceSec) || 285));
+  return Math.round((3600 / safe) * 10) / 10;
+};
+
+const kmhToPaceSec = (kmh) => {
+  const safeKmh = Math.max(3.5, Math.min(25, parseFloat(kmh) || 12.6));
+  return Math.round(3600 / safeKmh);
+};
+
+const kmhToPaceStr = (kmh) => secondsToPaceStr(kmhToPaceSec(kmh));
+
+const buildDefaultRunningZonesKmh = (grpPaceStr = '04:45') => {
+  const grpSec = paceStrToSeconds(grpPaceStr, 285);
+  const grpKmh = paceSecToKmh(grpSec);
+  return {
+    Z1: Math.round(grpKmh * RUNNING_ZONES_META.Z1.ratioToGRP * 10) / 10,
+    Z2: Math.round(grpKmh * RUNNING_ZONES_META.Z2.ratioToGRP * 10) / 10,
+    Z3: grpKmh,
+    Z4: Math.round(grpKmh * RUNNING_ZONES_META.Z4.ratioToGRP * 10) / 10,
+    Z5: Math.round(grpKmh * RUNNING_ZONES_META.Z5.ratioToGRP * 10) / 10
+  };
+};
+
+const getDayPrescribedZoneKey = (day) => {
+  if (!day || day.category === 'REST') return 'REST';
+  if (day.dayNum === 25) return 'Z1'; // Shakeout véspera Zona 1
+  if (day.category === 'AEROBIC') return 'Z2';
+  if (day.category === 'SPEED') {
+    if (day.dayNum === 7) return 'Z5'; // 6x1000m VO2máx
+    if (day.dayNum === 14) return 'Z4'; // 3x2000m Limiar
+    return 'Z3'; // Dia 22 4x800m GRP
+  }
+  if (day.category === 'COMPROMISED') return 'Z4';
+  if (day.category === 'SIMULATION' || day.category === 'RACE_DAY') return 'Z3';
+  if (day.category === 'ERG_CAPACITY') return 'Z2';
+  if (day.category === 'STRENGTH') return 'Z2';
+  return 'Z3';
+};
+
+const getDayPlannedRunDistanceKm = (day) => {
+  if (!day || day.category === 'REST') return 0;
+  const distByDay = {
+    1: 1.5, 2: 9.0, 3: 4.8, 4: 4.0, 5: 4.0, 6: 0,
+    7: 7.5, 8: 1.5, 9: 11.0, 10: 5.0, 11: 4.5, 12: 6.0, 13: 0,
+    14: 7.5, 15: 1.2, 16: 8.0, 17: 3.2, 18: 3.0, 19: 3.5, 20: 0,
+    21: 1.0, 22: 4.5, 23: 2.0, 24: 0, 25: 3.0, 26: 8.0
+  };
+  return distByDay[day.dayNum] !== undefined ? distByDay[day.dayNum] : 4.0;
+};
+
 function App() {
   // Estados principais com persistência segura em localStorage
   const [selectedDayNum, setSelectedDayNum] = useState(() => {
@@ -925,6 +1049,23 @@ function App() {
     return safeGetItem('hyrox_pace', '04:45') || '04:45';
   });
 
+  // Matriz Editável das 5 Zonas de Corrida (Velocidade em km/h <-> Pace em min/km) sincronizada em toda a aplicação
+  const [runningZonesKmh, setRunningZonesKmh] = useState(() => {
+    const initialPace = safeGetItem('hyrox_pace', '04:45') || '04:45';
+    const defaults = buildDefaultRunningZonesKmh(initialPace);
+    const saved = safeGetJSON('hyrox_running_zones_kmh', null);
+    if (saved && typeof saved === 'object') {
+      return {
+        Z1: Math.max(4, Math.min(25, parseFloat(saved.Z1) || defaults.Z1)),
+        Z2: Math.max(4, Math.min(25, parseFloat(saved.Z2) || defaults.Z2)),
+        Z3: Math.max(4, Math.min(25, parseFloat(saved.Z3) || defaults.Z3)),
+        Z4: Math.max(4, Math.min(25, parseFloat(saved.Z4) || defaults.Z4)),
+        Z5: Math.max(4, Math.min(25, parseFloat(saved.Z5) || defaults.Z5))
+      };
+    }
+    return defaults;
+  });
+
   const [completedDays, setCompletedDays] = useState(() => {
     return safeGetJSON('hyrox_completed_days', {});
   });
@@ -932,6 +1073,14 @@ function App() {
   const [dayLogs, setDayLogs] = useState(() => {
     return safeGetJSON('hyrox_day_logs', {});
   });
+
+  // Escopo de Fidelidade dos 7 Gráficos: 'CONFIRMED_ONLY' (100% apenas dados salvos/confirmados) ou 'ALL_WITH_PLANNED' (Confirmados + Planeado)
+  const [analyticsScope, setAnalyticsScope] = useState(() => {
+    const saved = safeGetItem('hyrox_analytics_scope', 'ALL_WITH_PLANNED');
+    return ['CONFIRMED_ONLY', 'ALL_WITH_PLANNED'].includes(saved) ? saved : 'ALL_WITH_PLANNED';
+  });
+
+  const [saveConfirmBanner, setSaveConfirmBanner] = useState('');
 
   // Estado para os 1RM de Força do Atleta
   const [oneRMs, setOneRMs] = useState(() => {
@@ -1026,6 +1175,14 @@ function App() {
   }, [goalPace]);
 
   useEffect(() => {
+    safeSetItem('hyrox_running_zones_kmh', JSON.stringify(runningZonesKmh));
+  }, [runningZonesKmh]);
+
+  useEffect(() => {
+    safeSetItem('hyrox_analytics_scope', analyticsScope);
+  }, [analyticsScope]);
+
+  useEffect(() => {
     safeSetItem('hyrox_completed_days', JSON.stringify(completedDays));
   }, [completedDays]);
 
@@ -1075,6 +1232,8 @@ function App() {
       divisionKey: ['WOMEN_OPEN', 'MEN_OPEN', 'WOMEN_PRO', 'MEN_PRO'].includes(divisionKey) ? divisionKey : 'MEN_OPEN',
       athleteWeight: Math.min(200, Math.max(35, parseFloat(athleteWeight) || 75)),
       goalPace: safePace,
+      runningZonesKmh: runningZonesKmh || buildDefaultRunningZonesKmh(safePace),
+      analyticsScope: ['CONFIRMED_ONLY', 'ALL_WITH_PLANNED'].includes(analyticsScope) ? analyticsScope : 'ALL_WITH_PLANNED',
       completedDays: completedDays || {},
       dayLogs: dayLogs || {},
       oneRMs: oneRMs || {},
@@ -1102,6 +1261,19 @@ function App() {
     }
     if (typeof snapshot.goalPace === 'string' && snapshot.goalPace.includes(':')) {
       setGoalPace(snapshot.goalPace);
+    }
+    if (snapshot.runningZonesKmh && typeof snapshot.runningZonesKmh === 'object') {
+      setRunningZonesKmh((prev) => ({
+        ...prev,
+        Z1: Math.max(4, Math.min(25, parseFloat(snapshot.runningZonesKmh.Z1) || prev.Z1)),
+        Z2: Math.max(4, Math.min(25, parseFloat(snapshot.runningZonesKmh.Z2) || prev.Z2)),
+        Z3: Math.max(4, Math.min(25, parseFloat(snapshot.runningZonesKmh.Z3) || prev.Z3)),
+        Z4: Math.max(4, Math.min(25, parseFloat(snapshot.runningZonesKmh.Z4) || prev.Z4)),
+        Z5: Math.max(4, Math.min(25, parseFloat(snapshot.runningZonesKmh.Z5) || prev.Z5))
+      }));
+    }
+    if (['CONFIRMED_ONLY', 'ALL_WITH_PLANNED'].includes(snapshot.analyticsScope)) {
+      setAnalyticsScope(snapshot.analyticsScope);
     }
     if (snapshot.completedDays && typeof snapshot.completedDays === 'object') {
       setCompletedDays(snapshot.completedDays);
@@ -1401,24 +1573,203 @@ function App() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const toggleDayCompletion = (dayNum) => {
-    setCompletedDays((prev) => ({
+  // Handlers de Sincronização Bidirecional de Pace (min/km) <-> Velocidade (km/h) para Zonas Z1-Z5 e GRP
+  const handleGoalPaceChange = (newPaceStr) => {
+    setGoalPace(newPaceStr);
+    if (typeof newPaceStr === 'string' && /^\d{1,2}:\d{2}$/.test(newPaceStr.trim())) {
+      const sec = paceStrToSeconds(newPaceStr.trim(), 285);
+      const kmh = paceSecToKmh(sec);
+      setRunningZonesKmh((prev) => ({
+        ...prev,
+        Z3: kmh
+      }));
+    }
+  };
+
+  const handleGoalSpeedKmhChange = (newKmhVal) => {
+    const kmh = Math.max(4, Math.min(25, Math.round((parseFloat(newKmhVal) || 12.6) * 10) / 10));
+    const paceStr = kmhToPaceStr(kmh);
+    setGoalPace(paceStr);
+    setRunningZonesKmh((prev) => ({
       ...prev,
-      [dayNum]: !prev[dayNum]
+      Z3: kmh
     }));
+  };
+
+  const handleZoneSpeedChange = (zoneId, newKmhVal) => {
+    const kmh = Math.max(4, Math.min(25, Math.round((parseFloat(newKmhVal) || 10.0) * 10) / 10));
+    setRunningZonesKmh((prev) => ({
+      ...prev,
+      [zoneId]: kmh
+    }));
+    if (zoneId === 'Z3') {
+      setGoalPace(kmhToPaceStr(kmh));
+    }
+  };
+
+  const handleZonePaceChange = (zoneId, newPaceStr) => {
+    if (typeof newPaceStr === 'string' && newPaceStr.includes(':')) {
+      const sec = paceStrToSeconds(newPaceStr, 285);
+      const kmh = paceSecToKmh(sec);
+      setRunningZonesKmh((prev) => ({
+        ...prev,
+        [zoneId]: kmh
+      }));
+      if (zoneId === 'Z3') {
+        setGoalPace(secondsToPaceStr(sec));
+      }
+    }
+  };
+
+  const recalibrateAllZonesFromGRP = () => {
+    const fresh = buildDefaultRunningZonesKmh(goalPace);
+    setRunningZonesKmh(fresh);
+  };
+
+  const getDefaultDayRunningLog = (day) => {
+    const targetDay = day || currentWorkout;
+    const prescribedZone = getDayPrescribedZoneKey(targetDay);
+    const zoneKmh = prescribedZone !== 'REST'
+      ? (runningZonesKmh[prescribedZone] || runningZonesKmh.Z3 || 12.6)
+      : 0;
+    const plannedDist = getDayPlannedRunDistanceKm(targetDay);
+    return {
+      rpe: targetDay.loadIndex === 0 ? 6 : targetDay.loadIndex + 9,
+      duration: targetDay.durationMin,
+      morningHR: '',
+      usedZone: prescribedZone === 'REST' ? 'Z1' : prescribedZone,
+      usedSpeedKmh: zoneKmh > 0 ? zoneKmh : (runningZonesKmh.Z1 || 10.1),
+      usedPace: zoneKmh > 0 ? kmhToPaceStr(zoneKmh) : kmhToPaceStr(runningZonesKmh.Z1 || 10.1),
+      distanceKm: plannedDist,
+      notes: ''
+    };
+  };
+
+  const toggleDayCompletion = (dayNum) => {
+    const targetDay = WORKOUT_DAYS.find((d) => d.dayNum === dayNum) || currentWorkout;
+    setCompletedDays((prev) => {
+      const nextCompleted = !prev[dayNum];
+      if (nextCompleted) {
+        setDayLogs((prevLogs) => {
+          const existing = prevLogs[dayNum] || {};
+          const defaults = getDefaultDayRunningLog(targetDay);
+          return {
+            ...prevLogs,
+            [dayNum]: {
+              ...defaults,
+              ...existing,
+              confirmedAt: new Date().toISOString()
+            }
+          };
+        });
+      }
+      return {
+        ...prev,
+        [dayNum]: nextCompleted
+      };
+    });
   };
 
   const handleLogChange = (dayNum, field, value) => {
-    setDayLogs((prev) => ({
-      ...prev,
-      [dayNum]: {
-        ...(prev[dayNum] || { rpe: 15, duration: currentWorkout.durationMin, morningHR: '', notes: '' }),
-        [field]: value
-      }
-    }));
+    const targetDay = WORKOUT_DAYS.find((d) => d.dayNum === dayNum) || currentWorkout;
+    setDayLogs((prev) => {
+      const base = prev[dayNum] || getDefaultDayRunningLog(targetDay);
+      return {
+        ...prev,
+        [dayNum]: {
+          ...base,
+          [field]: value
+        }
+      };
+    });
   };
 
-  // Estatísticas globais, controle de carga (sRPE) e Auditoria de Pareto 80/20 (US1)
+  const handleDayZoneChange = (dayNum, zoneId) => {
+    const targetDay = WORKOUT_DAYS.find((d) => d.dayNum === dayNum) || currentWorkout;
+    const zoneKmh = runningZonesKmh[zoneId] || runningZonesKmh.Z3 || 12.6;
+    const paceStr = kmhToPaceStr(zoneKmh);
+    setDayLogs((prev) => {
+      const base = prev[dayNum] || getDefaultDayRunningLog(targetDay);
+      return {
+        ...prev,
+        [dayNum]: {
+          ...base,
+          usedZone: zoneId,
+          usedSpeedKmh: zoneKmh,
+          usedPace: paceStr
+        }
+      };
+    });
+  };
+
+  const handleDaySpeedKmhChange = (dayNum, kmhVal) => {
+    const targetDay = WORKOUT_DAYS.find((d) => d.dayNum === dayNum) || currentWorkout;
+    const numKmh = Math.max(3.5, Math.min(25, Math.round((parseFloat(kmhVal) || 10.0) * 10) / 10));
+    const paceStr = kmhToPaceStr(numKmh);
+    setDayLogs((prev) => {
+      const base = prev[dayNum] || getDefaultDayRunningLog(targetDay);
+      return {
+        ...prev,
+        [dayNum]: {
+          ...base,
+          usedSpeedKmh: numKmh,
+          usedPace: paceStr
+        }
+      };
+    });
+  };
+
+  const handleDayPaceChange = (dayNum, paceStr) => {
+    const targetDay = WORKOUT_DAYS.find((d) => d.dayNum === dayNum) || currentWorkout;
+    setDayLogs((prev) => {
+      const base = prev[dayNum] || getDefaultDayRunningLog(targetDay);
+      const next = { ...base, usedPace: paceStr };
+      if (typeof paceStr === 'string' && /^\d{1,2}:\d{2}$/.test(paceStr.trim())) {
+        const sec = paceStrToSeconds(paceStr.trim(), 285);
+        next.usedSpeedKmh = paceSecToKmh(sec);
+      }
+      return {
+        ...prev,
+        [dayNum]: next
+      };
+    });
+  };
+
+  const handleConfirmAndSaveDay = (dayNum) => {
+    const targetDay = WORKOUT_DAYS.find((d) => d.dayNum === dayNum) || currentWorkout;
+    const defaults = getDefaultDayRunningLog(targetDay);
+    const stamp = new Date().toISOString();
+    setDayLogs((prev) => {
+      const existing = prev[dayNum] || {};
+      const finalSpeed = parseFloat(existing.usedSpeedKmh) || defaults.usedSpeedKmh;
+      const finalZone = existing.usedZone || defaults.usedZone;
+      const finalDist = existing.distanceKm !== undefined ? parseFloat(existing.distanceKm) || 0 : defaults.distanceKm;
+      return {
+        ...prev,
+        [dayNum]: {
+          ...defaults,
+          ...existing,
+          rpe: existing.rpe !== undefined ? parseInt(existing.rpe, 10) : defaults.rpe,
+          duration: existing.duration !== undefined ? parseInt(existing.duration, 10) : defaults.duration,
+          usedZone: finalZone,
+          usedSpeedKmh: finalSpeed,
+          usedPace: kmhToPaceStr(finalSpeed),
+          distanceKm: finalDist,
+          confirmedAt: stamp
+        }
+      };
+    });
+    setCompletedDays((prev) => ({
+      ...prev,
+      [dayNum]: true
+    }));
+    setSaveConfirmBanner(`Dia ${dayNum} (${targetDay.date}) salvo, confirmado e sincronizado em todos os gráficos!`);
+    setTimeout(() => {
+      setSaveConfirmBanner('');
+    }, 4500);
+  };
+
+  // Estatísticas globais, controle de carga (sRPE), velocidade real e Auditoria de Pareto 80/20 (US1)
   const stats = useMemo(() => {
     const totalDays = WORKOUT_DAYS.length;
     const doneCount = Object.values(completedDays).filter(Boolean).length;
@@ -1432,11 +1783,18 @@ function App() {
     let completedStrengthSessions = 0;
     let aerobicLoadUnits = 0;
     let strengthLoadUnits = 0;
+    let plannedDistanceKm = 0;
+    let confirmedDistanceKm = 0;
+    let weightedConfirmedSpeedSum = 0;
+    let confirmedSpeedSessions = 0;
+    let confirmedRPESum = 0;
 
     WORKOUT_DAYS.forEach((day) => {
       const plannedRPE = day.loadIndex === 0 ? 0 : day.loadIndex + 9; // Aproximação Borg 6-20
       const pLoad = day.durationMin * plannedRPE;
       plannedLoadUnits += pLoad;
+      const dayPlannedKm = getDayPlannedRunDistanceKm(day);
+      plannedDistanceKm += dayPlannedKm;
 
       const dir = PARETO_DAY_DIRECTIVES[day.dayNum];
       const isStrengthBucket = dir?.bucket8020 === 'SUPPORT_20_STRENGTH' || day.category === 'STRENGTH';
@@ -1447,10 +1805,22 @@ function App() {
 
       if (completedDays[day.dayNum]) {
         const log = dayLogs[day.dayNum];
-        const actualRPE = log?.rpe ? parseInt(log.rpe, 10) : plannedRPE;
-        const actualDur = log?.duration ? parseInt(log.duration, 10) : day.durationMin;
+        const actualRPE = log?.rpe !== undefined ? parseInt(log.rpe, 10) : plannedRPE;
+        const actualDur = log?.duration !== undefined ? parseInt(log.duration, 10) : day.durationMin;
         const dayUA = actualRPE * actualDur;
         loggedLoadUnits += dayUA;
+        confirmedRPESum += actualRPE;
+
+        const pZone = getDayPrescribedZoneKey(day);
+        const defaultZoneKmh = pZone !== 'REST' ? (runningZonesKmh[pZone] || runningZonesKmh.Z3 || 12.6) : 0;
+        const actualKmh = log?.usedSpeedKmh ? parseFloat(log.usedSpeedKmh) : defaultZoneKmh;
+        const actualKm = log?.distanceKm !== undefined ? parseFloat(log.distanceKm) || 0 : dayPlannedKm;
+        confirmedDistanceKm += actualKm;
+
+        if (actualKmh > 0 && day.category !== 'REST') {
+          weightedConfirmedSpeedSum += actualKmh;
+          confirmedSpeedSessions += 1;
+        }
 
         if (isAerobicBucket) {
           completedAerobicSessions += 1;
@@ -1474,6 +1844,13 @@ function App() {
 
     const imbalanceWarning = doneCount >= 3 && totalCompletedActive > 0 && actualAerobicRatioPct < 65;
 
+    const grpSpeedKmh = runningZonesKmh.Z3 || paceSecToKmh(paceStrToSeconds(goalPace, 285));
+    const avgConfirmedSpeedKmh = confirmedSpeedSessions > 0
+      ? Math.round((weightedConfirmedSpeedSum / confirmedSpeedSessions) * 10) / 10
+      : grpSpeedKmh;
+    const avgConfirmedPaceStr = kmhToPaceStr(avgConfirmedSpeedKmh);
+    const avgConfirmedRPE = doneCount > 0 ? Math.round((confirmedRPESum / doneCount) * 10) / 10 : 0;
+
     return {
       totalDays,
       doneCount,
@@ -1488,9 +1865,15 @@ function App() {
       actualAerobicRatioPct,
       aerobicLoadUnits,
       strengthLoadUnits,
-      imbalanceWarning
+      imbalanceWarning,
+      plannedDistanceKm: Math.round(plannedDistanceKm * 10) / 10,
+      confirmedDistanceKm: Math.round(confirmedDistanceKm * 10) / 10,
+      grpSpeedKmh,
+      avgConfirmedSpeedKmh,
+      avgConfirmedPaceStr,
+      avgConfirmedRPE
     };
-  }, [completedDays, dayLogs]);
+  }, [completedDays, dayLogs, runningZonesKmh, goalPace]);
 
   // Diagnóstico do Piso de Força (Strength Floor vs. Cargas Oficiais da Divisão - US2)
   const strengthFloorDiagnostics = useMemo(() => {
@@ -1646,19 +2029,22 @@ function App() {
   }, [roxzoneTargetSec]);
 
   // ============================================================================
-  // MOTOR ANALÍTICO DOS 7 GRÁFICOS & DIAGRAMA DE PARETO 80/20 (Feature 003 - T003/T004)
+  // MOTOR ANALÍTICO DOS 7 GRÁFICOS & DIAGRAMA DE PARETO 80/20 (100% SINCRONIZADO COM DADOS SALVOS & ZONAS DE CORRIDA)
   // ============================================================================
   const analyticsData = useMemo(() => {
-    // 1. Parse base GRP pace in seconds
+    // 1. Parse base GRP pace in seconds & GRP speed in km/h
     const safePaceStr = typeof goalPace === 'string' && goalPace.includes(':') ? goalPace : '04:45';
-    const paceParts = safePaceStr.split(':');
-    const pm = parseInt(paceParts[0], 10);
-    const ps = parseInt(paceParts[1], 10);
-    const basePaceSec = (!isNaN(pm) && !isNaN(ps) && pm >= 2 && pm <= 15 && ps >= 0 && ps < 60)
-      ? pm * 60 + ps
-      : 285; // 04:45 = 285s
+    const basePaceSec = paceStrToSeconds(safePaceStr, 285);
+    const grpSpeedKmh = runningZonesKmh.Z3 || paceSecToKmh(basePaceSec);
 
-    // 2. Séries Temporais de 26 Dias (Evolução, Volume Acumulado, Dispersão e Prontidão/VFC)
+    // Fator de carga real de força (média dos 1RMs atuais face aos defaults)
+    const rmRatioSum = Object.values(STRENGTH_EXERCISES).reduce((acc, ex) => {
+      const cur = parseFloat(oneRMs[ex.id]) || ex.default1RM;
+      return acc + cur / Math.max(1, ex.default1RM);
+    }, 0);
+    const strengthLoadScale = Math.max(0.65, Math.min(1.6, rmRatioSum / Object.keys(STRENGTH_EXERCISES).length));
+
+    // 2. Séries Temporais de 26 Dias (Evolução, Velocidade km/h, Volume Acumulado, Dispersão e Prontidão/VFC)
     let cumAnterior = 0;
     let cumPosterior = 0;
     let cumUpper = 0;
@@ -1671,11 +2057,42 @@ function App() {
       const plannedSRPE = day.loadIndex === 0 ? 0 : day.durationMin * plannedRPE;
       const log = dayLogs[day.dayNum];
       const isCompleted = !!completedDays[day.dayNum];
-      const loggedRPE = log && log.rpe ? parseInt(log.rpe, 10) : plannedRPE;
+      const hasLog = !!log;
+      const loggedRPE = log && log.rpe !== undefined ? parseInt(log.rpe, 10) : plannedRPE;
       const loggedDur = log && log.duration !== undefined ? parseInt(log.duration, 10) : day.durationMin;
       const actualSRPE = day.loadIndex === 0 ? 0 : loggedRPE * loggedDur;
+      const confirmedSRPE = isCompleted ? actualSRPE : 0;
+      const effectiveSRPE = analyticsScope === 'CONFIRMED_ONLY'
+        ? confirmedSRPE
+        : (isCompleted || hasLog ? actualSRPE : plannedSRPE);
 
-      // Intensidade % 1RM do dia (real dos blocos de força ou estimativa neuromuscular da categoria)
+      // Zona de Corrida Prescrita vs. Zona/Velocidade Real Executada pelo Atleta
+      const prescribedZoneKey = getDayPrescribedZoneKey(day);
+      const prescribedSpeedKmh = prescribedZoneKey === 'REST'
+        ? 0
+        : (runningZonesKmh[prescribedZoneKey] || grpSpeedKmh);
+      const prescribedPaceSec = prescribedSpeedKmh > 0
+        ? kmhToPaceSec(prescribedSpeedKmh)
+        : basePaceSec + 45;
+
+      const usedZoneKey = log && log.usedZone
+        ? log.usedZone
+        : (prescribedZoneKey === 'REST' ? 'Z1' : prescribedZoneKey);
+      const usedSpeedKmh = day.category === 'REST' && !isCompleted
+        ? 0
+        : (log && log.usedSpeedKmh !== undefined && parseFloat(log.usedSpeedKmh) > 0
+          ? Math.round(parseFloat(log.usedSpeedKmh) * 10) / 10
+          : prescribedSpeedKmh);
+      const confirmedSpeedKmh = isCompleted ? usedSpeedKmh : 0;
+      const effectiveSpeedKmh = analyticsScope === 'CONFIRMED_ONLY'
+        ? confirmedSpeedKmh
+        : usedSpeedKmh;
+
+      const targetPaceSec = usedSpeedKmh > 0 ? kmhToPaceSec(usedSpeedKmh) : prescribedPaceSec;
+      const plannedDistKm = getDayPlannedRunDistanceKm(day);
+      const actualDistKm = log && log.distanceKm !== undefined ? parseFloat(log.distanceKm) || 0 : plannedDistKm;
+
+      // Intensidade % 1RM do dia (real dos blocos de força ou solicitação neuromuscular ajustada à velocidade real)
       let strengthIntensityPct = 0;
       const strengthPcts = [];
       day.blocks.forEach((b) => {
@@ -1703,46 +2120,54 @@ function App() {
         strengthIntensityPct = 0;
       }
 
-      // Pace específico do dia (s/km)
-      let dayPaceDelta = 0;
-      if (day.category === 'SPEED') dayPaceDelta = -7;
-      else if (day.category === 'AEROBIC') dayPaceDelta = 28;
-      else if (day.category === 'COMPROMISED') dayPaceDelta = 5;
-      else if (day.category === 'SIMULATION' || day.category === 'RACE_DAY') dayPaceDelta = 0;
-      else if (day.category === 'ERG_CAPACITY') dayPaceDelta = 12;
-      else if (day.category === 'STRENGTH') dayPaceDelta = 18;
-      const targetPaceSec = day.category === 'REST' ? basePaceSec + 35 : Math.max(150, basePaceSec + dayPaceDelta);
-
-      // Incremento de volume por agrupamento muscular / padrão motor
+      // Incremento de volume por agrupamento muscular / padrão motor escalado pelos dados reais do atleta
       let addAnt = 0, addPost = 0, addUp = 0, addCore = 0, addAero = 0;
       if (day.category === 'STRENGTH') {
-        addAnt = 24; addPost = 22; addUp = 10; addCore = 16; addAero = 8;
+        addAnt = 24 * strengthLoadScale;
+        addPost = 22 * strengthLoadScale;
+        addUp = 10 * strengthLoadScale;
+        addCore = 16 * strengthLoadScale;
+        addAero = 8;
       } else if (day.category === 'SPEED') {
         addAnt = 12; addPost = 14; addUp = 4; addCore = 8; addAero = 32;
       } else if (day.category === 'AEROBIC') {
         addAnt = 8; addPost = 8; addUp = 4; addCore = 6; addAero = 35;
       } else if (day.category === 'COMPROMISED') {
-        addAnt = 26; addPost = 20; addUp = 14; addCore = 18; addAero = 28;
+        addAnt = 26 * strengthLoadScale;
+        addPost = 20 * strengthLoadScale;
+        addUp = 14; addCore = 18; addAero = 28;
       } else if (day.category === 'ERG_CAPACITY') {
         addAnt = 10; addPost = 16; addUp = 26; addCore = 22; addAero = 24;
       } else if (day.category === 'SIMULATION' || day.category === 'RACE_DAY') {
         addAnt = 32; addPost = 26; addUp = 24; addCore = 24; addAero = 42;
       }
+
+      const durScale = day.durationMin > 0 ? Math.max(0.3, Math.min(1.8, loggedDur / day.durationMin)) : 1.0;
+      const speedScale = prescribedSpeedKmh > 0 && usedSpeedKmh > 0
+        ? Math.max(0.7, Math.min(1.4, usedSpeedKmh / prescribedSpeedKmh))
+        : 1.0;
       const mcScale = day.microcycle === 2 ? 1.12 : day.microcycle === 3 ? 0.85 : day.microcycle === 4 ? 0.55 : 1.0;
-      cumAnterior += Math.round(addAnt * mcScale);
-      cumPosterior += Math.round(addPost * mcScale);
-      cumUpper += Math.round(addUp * mcScale);
-      cumCoreGrip += Math.round(addCore * mcScale);
-      cumAerobic += Math.round(addAero * mcScale);
+      const shouldAccumulate = analyticsScope === 'CONFIRMED_ONLY' ? isCompleted : true;
+      const activeFactor = shouldAccumulate ? mcScale * durScale : 0;
+
+      cumAnterior += Math.round(addAnt * activeFactor);
+      cumPosterior += Math.round(addPost * activeFactor);
+      cumUpper += Math.round(addUp * activeFactor);
+      cumCoreGrip += Math.round(addCore * activeFactor);
+      cumAerobic += Math.round(addAero * activeFactor * speedScale);
 
       // Correlação Carga Externa (0..100) vs Carga Interna PSE (6..20) & Prontidão/VFC (0..100)
-      const externalLoad = Math.min(100, Math.round((day.durationMin * day.loadIndex) / 9.0));
-      const internalRPE = isCompleted || (log && log.rpe) ? loggedRPE : plannedRPE;
+      const activeDurForExt = isCompleted || hasLog ? loggedDur : day.durationMin;
+      const externalLoad = Math.min(100, Math.round(((activeDurForExt * day.loadIndex) / 9.0) * speedScale));
+      const internalRPE = isCompleted || hasLog ? loggedRPE : plannedRPE;
 
       // Modelo fisiológico de Prontidão / VFC (sobe no descanso/Tapering, desce após pico de carga ou FC basal alta)
       const hrVal = log && log.morningHR ? parseFloat(log.morningHR) : NaN;
       const hrPenalty = !isNaN(hrVal) && hrVal > 58 ? Math.min(18, (hrVal - 58) * 2.2) : 0;
-      rollingFatigue = Math.max(4, Math.min(62, rollingFatigue * 0.72 + (externalLoad * 0.36) - (day.loadIndex === 0 ? 18 : day.loadIndex <= 4 ? 8 : 0)));
+      const fatigueInputLoad = isCompleted || hasLog
+        ? Math.min(100, Math.round((actualSRPE / 14.5) * speedScale))
+        : externalLoad;
+      rollingFatigue = Math.max(4, Math.min(62, rollingFatigue * 0.72 + (fatigueInputLoad * 0.36) - (day.loadIndex === 0 ? 18 : day.loadIndex <= 4 ? 8 : 0)));
       const readinessScore = Math.min(99, Math.max(38, Math.round(98 - rollingFatigue - hrPenalty)));
 
       const expectedRPE = day.loadIndex === 0 ? 6 : 9 + day.loadIndex;
@@ -1760,9 +2185,22 @@ function App() {
         category: day.category,
         loadIndex: day.loadIndex,
         durationMin: day.durationMin,
+        loggedDur,
         isCompleted,
+        hasLog,
         plannedSRPE,
         actualSRPE,
+        confirmedSRPE,
+        effectiveSRPE,
+        prescribedZoneKey,
+        prescribedSpeedKmh,
+        prescribedPaceSec,
+        usedZoneKey,
+        usedSpeedKmh,
+        confirmedSpeedKmh,
+        effectiveSpeedKmh,
+        plannedDistKm,
+        actualDistKm,
         strengthIntensityPct,
         targetPaceSec,
         cumAnteriorVol: cumAnterior,
@@ -1778,45 +2216,108 @@ function App() {
       };
     });
 
-    // 3. Composição Semanal dos 4 Microciclos (Séries por Grupo Muscular & Minutos em Zonas Z1-Z5)
-    const microcycleComposition = [
-      {
-        microcycleId: 1,
-        label: 'M1 • Calibração (85%)',
-        shortLabel: 'M1 (Sem 1)',
-        muscleSets: { anterior: 22, posterior: 18, costasPull: 16, ombrosPush: 14, coreGrip: 16 },
-        hrZonesMin: { z1: 45, z2: 145, z3: 75, z4: 60, z5: 20 }
-      },
-      {
-        microcycleId: 2,
-        label: 'M2 • Pico Carga (100%)',
-        shortLabel: 'M2 (Sem 2)',
-        muscleSets: { anterior: 28, posterior: 24, costasPull: 20, ombrosPush: 18, coreGrip: 22 },
-        hrZonesMin: { z1: 40, z2: 155, z3: 95, z4: 85, z5: 35 }
-      },
-      {
-        microcycleId: 3,
-        label: 'M3 • Transições (75%)',
-        shortLabel: 'M3 (Sem 3)',
-        muscleSets: { anterior: 19, posterior: 16, costasPull: 15, ombrosPush: 14, coreGrip: 16 },
-        hrZonesMin: { z1: 50, z2: 130, z3: 70, z4: 65, z5: 25 }
-      },
-      {
-        microcycleId: 4,
-        label: 'M4 • Tapering & Prova (45%)',
-        shortLabel: 'M4 (Sem 4)',
-        muscleSets: { anterior: 12, posterior: 10, costasPull: 10, ombrosPush: 10, coreGrip: 10 },
-        hrZonesMin: { z1: 55, z2: 85, z3: 45, z4: 45, z5: 20 }
-      }
-    ];
+    // 3. Composição Semanal dos 4 Microciclos 100% Dinâmica (Calculada dos Treinos Salvos/Confirmados + Zonas Editadas)
+    const microcycleLabels = {
+      1: { label: 'M1 • Calibração (85%)', shortLabel: 'M1 (Sem 1)' },
+      2: { label: 'M2 • Pico Carga (100%)', shortLabel: 'M2 (Sem 2)' },
+      3: { label: 'M3 • Transições (75%)', shortLabel: 'M3 (Sem 3)' },
+      4: { label: 'M4 • Tapering & Prova (45%)', shortLabel: 'M4 (Sem 4)' }
+    };
+
+    const microcycleComposition = [1, 2, 3, 4].map((mcId) => {
+      const mcDays = evolutionSeries.filter((d) => d.microcycle === mcId);
+      const muscleSets = { anterior: 0, posterior: 0, costasPull: 0, ombrosPush: 0, coreGrip: 0 };
+      const hrZonesMin = { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 };
+      let confirmedDaysInMc = 0;
+      let totalActiveDaysInMc = 0;
+
+      mcDays.forEach((d) => {
+        if (d.category !== 'REST') totalActiveDaysInMc += 1;
+        if (d.isCompleted) confirmedDaysInMc += 1;
+
+        const includeDay = analyticsScope === 'CONFIRMED_ONLY' ? d.isCompleted : true;
+        if (!includeDay || d.category === 'REST') return;
+
+        const dur = d.isCompleted || d.hasLog ? d.loggedDur : d.durationMin;
+        const durRatio = d.durationMin > 0 ? Math.max(0.35, Math.min(1.6, dur / d.durationMin)) : 1.0;
+        const zKey = (d.isCompleted || d.hasLog ? d.usedZoneKey : d.prescribedZoneKey) || 'Z2';
+
+        // Distribuição de Séries Efetivas por Grupo Muscular
+        let sAnt = 0, sPost = 0, sPull = 0, sPush = 0, sCore = 0;
+        if (d.category === 'STRENGTH') {
+          sAnt = 9 * strengthLoadScale;
+          sPost = 8 * strengthLoadScale;
+          sPull = 4 * strengthLoadScale;
+          sPush = 4 * strengthLoadScale;
+          sCore = 6 * strengthLoadScale;
+        } else if (d.category === 'COMPROMISED') {
+          sAnt = 8; sPost = 6; sPull = 5; sPush = 6; sCore = 6;
+        } else if (d.category === 'ERG_CAPACITY') {
+          sAnt = 3; sPost = 5; sPull = 8; sPush = 5; sCore = 7;
+        } else if (d.category === 'SIMULATION' || d.category === 'RACE_DAY') {
+          sAnt = 8; sPost = 7; sPull = 6; sPush = 6; sCore = 6;
+        } else if (d.category === 'SPEED') {
+          sAnt = 3; sPost = 3; sPull = 1; sPush = 1; sCore = 2;
+        } else if (d.category === 'AEROBIC') {
+          sAnt = 2; sPost = 2; sPull = 1; sPush = 1; sCore = 2;
+        }
+
+        muscleSets.anterior += Math.round(sAnt * durRatio);
+        muscleSets.posterior += Math.round(sPost * durRatio);
+        muscleSets.costasPull += Math.round(sPull * durRatio);
+        muscleSets.ombrosPush += Math.round(sPush * durRatio);
+        muscleSets.coreGrip += Math.round(sCore * durRatio);
+
+        // Distribuição de Minutos nas Zonas Z1 a Z5 (respeitando a Zona Real Usada pelo Atleta no Dia)
+        const warmupCoolMin = Math.round(dur * 0.18);
+        const mainMin = Math.max(0, dur - warmupCoolMin);
+        hrZonesMin.z1 += Math.round(warmupCoolMin * 0.65);
+        hrZonesMin.z2 += Math.round(warmupCoolMin * 0.35);
+
+        if (zKey === 'Z1') {
+          hrZonesMin.z1 += Math.round(mainMin * 0.8);
+          hrZonesMin.z2 += Math.round(mainMin * 0.2);
+        } else if (zKey === 'Z2') {
+          hrZonesMin.z2 += Math.round(mainMin * 0.82);
+          hrZonesMin.z3 += Math.round(mainMin * 0.18);
+        } else if (zKey === 'Z3') {
+          hrZonesMin.z2 += Math.round(mainMin * 0.20);
+          hrZonesMin.z3 += Math.round(mainMin * 0.60);
+          hrZonesMin.z4 += Math.round(mainMin * 0.20);
+        } else if (zKey === 'Z4') {
+          hrZonesMin.z2 += Math.round(mainMin * 0.15);
+          hrZonesMin.z3 += Math.round(mainMin * 0.25);
+          hrZonesMin.z4 += Math.round(mainMin * 0.48);
+          hrZonesMin.z5 += Math.round(mainMin * 0.12);
+        } else if (zKey === 'Z5') {
+          hrZonesMin.z2 += Math.round(mainMin * 0.20);
+          hrZonesMin.z3 += Math.round(mainMin * 0.20);
+          hrZonesMin.z4 += Math.round(mainMin * 0.25);
+          hrZonesMin.z5 += Math.round(mainMin * 0.35);
+        }
+      });
+
+      return {
+        microcycleId: mcId,
+        label: microcycleLabels[mcId].label,
+        shortLabel: microcycleLabels[mcId].shortLabel,
+        confirmedDaysInMc,
+        totalActiveDaysInMc,
+        muscleSets,
+        hrZonesMin
+      };
+    });
 
     // 4. Perfil Multidimensional de Radar (5 Eixos: Força, Resistência, Mobilidade, Potência, Velocidade)
     const avgStrengthReserve = Math.round(
       strengthFloorDiagnostics.reduce((acc, s) => acc + (s.reservePct || 65), 0) /
       Math.max(1, strengthFloorDiagnostics.length)
     );
-    const paceScore = Math.min(98, Math.max(45, Math.round(100 - ((basePaceSec - 225) / 155) * 48)));
-    const aerobicCompletionBonus = Math.min(8, stats.completedAerobicSessions);
+    const activePaceSecForScore = stats.doneCount > 0
+      ? kmhToPaceSec(stats.avgConfirmedSpeedKmh)
+      : basePaceSec;
+    const paceScore = Math.min(98, Math.max(45, Math.round(100 - ((activePaceSecForScore - 225) / 155) * 48)));
+    const aerobicCompletionBonus = Math.min(10, stats.completedAerobicSessions);
     const enduranceScore = Math.min(98, paceScore + aerobicCompletionBonus);
 
     const backSq = parseFloat(oneRMs.backSquat) || 120;
@@ -1830,8 +2331,9 @@ function App() {
     const relPowerIndex = (trapBar + backSq + pushPress * 2) / w;
     const powerScore = Math.min(98, Math.max(48, Math.round(relPowerIndex * 21)));
 
+    const z5Bonus = Math.min(8, Math.max(-6, Math.round(((runningZonesKmh.Z5 || 13.7) - 13.5) * 2.2)));
     const roxScore = Math.min(98, Math.max(42, Math.round(100 - ((roxzoneSim.secPerPassage - 16) / 44) * 55)));
-    const speedScore = Math.min(98, Math.round(roxScore * 0.6 + paceScore * 0.4));
+    const speedScore = Math.min(98, Math.max(45, Math.round(roxScore * 0.55 + paceScore * 0.45 + z5Bonus)));
 
     const radarAxes = [
       { id: 'strength', label: 'Força (1RM)', score: avgStrengthReserve, benchmark: 85 },
@@ -1857,7 +2359,8 @@ function App() {
       return 0.92;
     };
 
-    const runFadePenaltySec = Math.max(25, Math.round((basePaceSec - 240) * 1.35 + 48));
+    const effectiveRunPaceSec = stats.doneCount > 0 ? kmhToPaceSec(stats.avgConfirmedSpeedKmh) : basePaceSec;
+    const runFadePenaltySec = Math.max(25, Math.round((effectiveRunPaceSec - 240) * 1.35 + 48));
     const roxPenaltySec = Math.max(15, (roxzoneSim.secPerPassage - 18) * 16);
     const wbPenaltyMult = fractionationProfile === 'SAFE_80_20' ? 0.88 : fractionationProfile === 'ELITE_DENSITY' ? 1.18 : 0.95;
 
@@ -1866,9 +2369,9 @@ function App() {
         id: 'running',
         name: 'Corrida (8x1km)',
         shortName: 'Corrida 8km',
-        fatigueScore: Math.round(210 * (basePaceSec > 285 ? 1.15 : 1.0)),
+        fatigueScore: Math.round(210 * (effectiveRunPaceSec > 285 ? 1.15 : 1.0)),
         timeLossSec: runFadePenaltySec,
-        actionTip: `Corrida 1 a ${calculateAdjustedPace(goalPace, 15)}/km (+15s anti-fade) e manter cadência >=175 spm no Km 5 a 8.`
+        actionTip: `Z3 GRP: ${runningZonesKmh.Z3} km/h (${goalPace}/km) • Corrida 1 a ${calculateAdjustedPace(goalPace, 15)}/km (+15s anti-fade) e Z4 Limiar a ${runningZonesKmh.Z4} km/h.`
       },
       {
         id: 'sledPush',
@@ -1976,6 +2479,7 @@ function App() {
 
     return {
       basePaceSec,
+      grpSpeedKmh,
       evolutionSeries,
       microcycleComposition,
       radarAxes,
@@ -1989,11 +2493,15 @@ function App() {
     };
   }, [
     goalPace,
+    runningZonesKmh,
+    analyticsScope,
     dayLogs,
     completedDays,
     customPcts,
     strengthFloorDiagnostics,
     stats.completedAerobicSessions,
+    stats.doneCount,
+    stats.avgConfirmedSpeedKmh,
     oneRMs,
     athleteWeight,
     roxzoneSim,
@@ -2003,11 +2511,11 @@ function App() {
     selectedDayNum
   ]);
 
-  const currentLog = dayLogs[currentWorkout.dayNum] || {
-    rpe: currentWorkout.loadIndex === 0 ? 6 : currentWorkout.loadIndex + 9,
-    duration: currentWorkout.durationMin,
-    morningHR: '',
-    notes: ''
+  const currentPrescribedZoneKey = getDayPrescribedZoneKey(currentWorkout);
+  const currentDefaultRunningLog = getDefaultDayRunningLog(currentWorkout);
+  const currentLog = {
+    ...currentDefaultRunningLog,
+    ...(dayLogs[currentWorkout.dayNum] || {})
   };
 
   // Cálculo nutricional dinâmico para o dia selecionado
@@ -2086,15 +2594,27 @@ function App() {
 
             <div className="flex items-center gap-1.5">
               <Timer className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span className="text-slate-400">Pace Alvo (GRP):</span>
+              <span className="text-slate-400">Pace GRP (Z3):</span>
               <input
                 type="text"
                 value={goalPace}
-                onChange={(e) => setGoalPace(e.target.value)}
+                onChange={(e) => handleGoalPaceChange(e.target.value)}
                 placeholder="04:45"
-                className="w-16 bg-slate-800 text-white font-mono font-bold text-center rounded-lg px-1.5 py-1 border border-slate-700 focus:outline-none focus:border-cyan-400"
+                className="w-15 bg-slate-800 text-white font-mono font-bold text-center rounded-lg px-1.5 py-1 border border-slate-700 focus:outline-none focus:border-cyan-400"
               />
               <span className="text-slate-500">/km</span>
+              <span className="text-slate-600">•</span>
+              <input
+                type="number"
+                step="0.1"
+                min="4"
+                max="25"
+                value={runningZonesKmh.Z3}
+                onChange={(e) => handleGoalSpeedKmhChange(e.target.value)}
+                className="w-14 bg-slate-800 text-yellow-400 font-mono font-bold text-center rounded-lg px-1 py-1 border border-slate-700 focus:outline-none focus:border-yellow-400"
+                title="Velocidade Alvo da Zona 3 (GRP) em km/h"
+              />
+              <span className="text-slate-500">km/h</span>
             </div>
 
             <div className="h-4 w-px bg-slate-800 hidden sm:block" />
@@ -2245,10 +2765,10 @@ function App() {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Roxzone &amp; Pace GRP
+                Vel. GRP &amp; Roxzone
               </span>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                -{formatTimer(roxzoneSim.savedVsSlowSec)}
+                {runningZonesKmh.Z3} km/h
               </span>
             </div>
             <div className="my-1.5 flex items-baseline justify-between gap-2">
@@ -2256,11 +2776,11 @@ function App() {
                 {goalPace}<span className="text-xs text-slate-400 font-normal">/km</span>
               </strong>
               <span className="text-xs font-mono font-bold text-purple-300">
-                {roxzoneSim.secPerPassage}s × 16
+                {stats.confirmedDistanceKm} km conf.
               </span>
             </div>
             <span className="text-[10px] text-slate-400 truncate block">
-              Divisão: <strong className="text-yellow-400">{currentDivision.name}</strong>
+              Média Confirmada: <strong className="text-yellow-400">{stats.avgConfirmedSpeedKmh} km/h ({stats.avgConfirmedPaceStr}/km)</strong>
             </span>
           </div>
         </div>
@@ -2426,28 +2946,113 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Ritmos Calculados se houver corrida */}
-                  {currentWorkout.category !== 'REST' && (
-                    <div className="mb-5 bg-cyan-950/30 border border-cyan-800/40 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <Activity className="w-5 h-5 text-cyan-400 shrink-0" />
-                        <span className="text-xs sm:text-sm text-cyan-100 font-medium">
-                          Referências de Pace para hoje (Base GRP: <strong className="font-mono text-white">{goalPace}/km</strong>):
-                        </span>
+                  {/* MATRIZ EDITÁVEL DAS 5 ZONAS DE CORRIDA (VELOCIDADE km/h <-> PACE min/km) SINCRONIZADA */}
+                  <div className="mb-5 bg-slate-950/90 border border-cyan-500/35 rounded-xl p-4 space-y-3 shadow-md">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/90">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-white block">
+                            Zonas de Corrida Editáveis (Velocidade km/h &amp; Pace /km)
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {currentPrescribedZoneKey !== 'REST' ? (
+                              <>
+                                Zona Prescrita Hoje:{' '}
+                                <strong className="text-yellow-400">
+                                  {RUNNING_ZONES_META[currentPrescribedZoneKey]?.name} ({runningZonesKmh[currentPrescribedZoneKey]} km/h • {kmhToPaceStr(runningZonesKmh[currentPrescribedZoneKey])}/km)
+                                </strong>
+                              </>
+                            ) : (
+                              'Dia de Descanso Absoluto (Referência Z1 Regenerativa ativa)'
+                            )}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 text-xs font-mono">
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-emerald-300">
-                          Corrida 1 (+15s): {calculateAdjustedPace(goalPace, 15)}/km
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300">
-                          Ritmo Prova (GRP): {goalPace}/km
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-rose-300">
-                          Intervalos VO2 (-7s): {calculateAdjustedPace(goalPace, -7)}/km
-                        </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {currentPrescribedZoneKey !== 'REST' && (
+                          <button
+                            onClick={() => handleDayZoneChange(currentWorkout.dayNum, currentPrescribedZoneKey)}
+                            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition-all"
+                            title="Preencher o registo de hoje com a velocidade exata da Zona Prescrita"
+                          >
+                            Usar Zona Prescrita ({currentPrescribedZoneKey}: {runningZonesKmh[currentPrescribedZoneKey]} km/h)
+                          </button>
+                        )}
+                        <button
+                          onClick={recalibrateAllZonesFromGRP}
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 hover:border-yellow-400/50 hover:text-yellow-300 transition-all"
+                          title="Recalibrar automaticamente Z1 a Z5 com base no Pace GRP (Z3)"
+                        >
+                          Recalibrar Z1–Z5 pelo GRP
+                        </button>
                       </div>
                     </div>
-                  )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+                      {Object.values(RUNNING_ZONES_META).map((zMeta) => {
+                        const zKmh = runningZonesKmh[zMeta.id] || 12.0;
+                        const zPace = kmhToPaceStr(zKmh);
+                        const isPrescribed = currentPrescribedZoneKey === zMeta.id;
+                        const isUsedToday = currentLog.usedZone === zMeta.id;
+                        return (
+                          <div
+                            key={zMeta.id}
+                            className={`rounded-xl p-2.5 border transition-all flex flex-col justify-between gap-2 ${
+                              isPrescribed
+                                ? 'bg-yellow-400/10 border-yellow-400 shadow-md shadow-yellow-400/10'
+                                : isUsedToday
+                                ? 'bg-cyan-500/10 border-cyan-400/60'
+                                : 'bg-slate-900/80 border-slate-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-xs font-black text-white">{zMeta.short}</span>
+                              {isPrescribed && (
+                                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-yellow-400 text-slate-950">
+                                  Prescrita
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                                <span className="text-[10px] text-slate-400 font-bold">Vel:</span>
+                                <div className="flex items-center gap-0.5">
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    min="4"
+                                    max="25"
+                                    value={zKmh}
+                                    onChange={(e) => handleZoneSpeedChange(zMeta.id, e.target.value)}
+                                    className="w-12 bg-transparent text-yellow-400 font-mono font-black text-xs text-right focus:outline-none"
+                                  />
+                                  <span className="text-[10px] text-slate-400 font-mono">km/h</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800/80">
+                                <span className="text-[10px] text-slate-400">Pace:</span>
+                                <span className="text-[11px] font-mono font-bold text-cyan-300">{zPace}/km</span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleDayZoneChange(currentWorkout.dayNum, zMeta.id)}
+                              className={`w-full py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                isUsedToday
+                                  ? 'bg-emerald-500 text-slate-950 font-black'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                              }`}
+                            >
+                              {isUsedToday ? `✓ Usada Hoje (${zKmh} km/h)` : `Usar ${zMeta.id} Hoje`}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   {/* Card do Núcleo Vital de Pareto (Regra 80/20 da Sessão - US1) */}
                   <div className="mb-5 bg-slate-950 border border-yellow-500/30 rounded-xl p-4 shadow-md">
@@ -2683,19 +3288,94 @@ function App() {
 
               {/* COLUNA DIREITA (1/3): DIÁRIO DE CARGA (sRPE), TIMER E NUTRIÇÃO DO DIA */}
               <div className="space-y-6">
-                {/* REGISTO DE CONTROLE DE CARGA DO DIA */}
+                {/* REGISTO DE CONTROLE DE CARGA & VELOCIDADE REAL DA CORRIDA DO DIA */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
                       <HeartPulse className="w-4 h-4 text-rose-400" />
-                      Controle de Carga Diária
+                      Carga &amp; Velocidade Real
                     </h4>
-                    <span className="text-xs font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                    <span className="text-xs font-mono bg-slate-800 px-2 py-0.5 rounded text-yellow-400 font-bold">
                       sRPE: {(currentLog.rpe || 0) * (currentLog.duration || 0)} UA
                     </span>
                   </div>
 
-                  <div className="space-y-4 text-xs">
+                  {saveConfirmBanner && (
+                    <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>{saveConfirmBanner}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-3.5 text-xs">
+                    {/* Seletor de Zona Executada & Velocidade Usada na Corrida */}
+                    <div className="bg-slate-950/90 border border-cyan-500/30 rounded-xl p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold uppercase text-cyan-300">
+                          Zona de Corrida Executada Hoje:
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          Prescrita: <strong className="text-yellow-400">{currentPrescribedZoneKey}</strong>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-5 gap-1">
+                        {Object.values(RUNNING_ZONES_META).map((z) => {
+                          const activeZone = currentLog.usedZone === z.id;
+                          return (
+                            <button
+                              key={z.id}
+                              type="button"
+                              onClick={() => handleDayZoneChange(currentWorkout.dayNum, z.id)}
+                              className={`py-1.5 rounded-lg font-mono font-bold text-[11px] border transition-all ${
+                                activeZone
+                                  ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow'
+                                  : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              {z.id}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 pt-1">
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-1">Vel. Usada (km/h):</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="3.5"
+                            max="25"
+                            value={currentLog.usedSpeedKmh}
+                            onChange={(e) => handleDaySpeedKmhChange(currentWorkout.dayNum, e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-yellow-400 font-mono font-black text-center focus:outline-none focus:border-yellow-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-1">Pace Real (/km):</label>
+                          <input
+                            type="text"
+                            value={currentLog.usedPace || kmhToPaceStr(currentLog.usedSpeedKmh)}
+                            onChange={(e) => handleDayPaceChange(currentWorkout.dayNum, e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-cyan-300 font-mono font-bold text-center focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 block mb-1">Distância (km):</label>
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            max="30"
+                            value={currentLog.distanceKm}
+                            onChange={(e) => handleLogChange(currentWorkout.dayNum, 'distanceKm', parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-emerald-300 font-mono font-bold text-center focus:outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
                       <div className="flex justify-between mb-1">
                         <label className="text-slate-300 font-semibold">
@@ -2745,12 +3425,21 @@ function App() {
                       <label className="text-slate-400 block mb-1">Parciais / Notas de Transição e Fadiga:</label>
                       <textarea
                         rows="2"
-                        placeholder="Registe parciais de 1km, tempo nos trenós ou sensação muscular..."
+                        placeholder="Registe parciais de 1km, velocidade nos intervalos, tempo nos trenós..."
                         value={currentLog.notes}
                         onChange={(e) => handleLogChange(currentWorkout.dayNum, 'notes', e.target.value)}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-yellow-400"
                       />
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmAndSaveDay(currentWorkout.dayNum)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wide text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>✓ Salvar &amp; Confirmar Dados do Dia {currentWorkout.dayNum}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -3202,35 +3891,110 @@ function App() {
         ========================================== */}
         {activeTab === 'LOAD' && (
           <div className="space-y-6">
-            {/* Cards Superiores de Carga */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <span className="text-xs text-slate-400 uppercase font-bold">Aderência à Periodização</span>
-                <div className="text-3xl font-black text-yellow-400 mt-1">
-                  {stats.doneCount} / {stats.totalDays} <span className="text-base font-normal text-slate-400">dias ({stats.progressPct}%)</span>
+            {/* BARRA EXECUTIVA DE FIDELIDADE DE DADOS SALVOS & CALIBRAÇÃO RÁPIDA DE ZONAS (Z1-Z5 km/h) */}
+            <div className="bg-slate-900/95 border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-800">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="text-[11px] font-black uppercase px-2.5 py-0.5 rounded bg-emerald-400 text-slate-950">
+                      Motor de Dados Fidedignos &amp; Sincronizados
+                    </span>
+                    <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-slate-950 text-cyan-300 border border-slate-800">
+                      {stats.doneCount}/26 Treinos Confirmados • {stats.confirmedDistanceKm} km • Média {stats.avgConfirmedSpeedKmh} km/h
+                    </span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-black text-white uppercase">
+                    Fonte dos 7 Gráficos: Sincronização Total (Treinos Salvos + Zonas Z1–Z5 + 1RMs)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Escolha se os gráficos devem exibir <strong>estritamente os treinos já salvos/confirmados</strong> ou a projeção combinada com o plano de 26 dias.
+                  </p>
                 </div>
-                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mt-3">
-                  <div className="h-full bg-yellow-400" style={{ width: `${stats.progressPct}%` }} />
+
+                <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0">
+                  <button
+                    onClick={() => setAnalyticsScope('CONFIRMED_ONLY')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      analyticsScope === 'CONFIRMED_ONLY'
+                        ? 'bg-emerald-400 text-slate-950 shadow font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    ✓ Apenas Dados Salvos &amp; Confirmados (Fidedigno)
+                  </button>
+                  <button
+                    onClick={() => setAnalyticsScope('ALL_WITH_PLANNED')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      analyticsScope === 'ALL_WITH_PLANNED'
+                        ? 'bg-yellow-400 text-slate-950 shadow font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Confirmados + Planeado (26 Dias)
+                  </button>
                 </div>
               </div>
 
+              {/* Calibração Rápida de Velocidade (km/h) das 5 Zonas de Corrida diretamente nos Gráficos */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                {Object.values(RUNNING_ZONES_META).map((z) => {
+                  const zKmh = runningZonesKmh[z.id] || 12.0;
+                  return (
+                    <div key={z.id} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[11px] font-black text-white block">{z.short}</span>
+                        <span className="text-[10px] font-mono text-cyan-300">{kmhToPaceStr(zKmh)}/km</span>
+                      </div>
+                      <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="4"
+                          max="25"
+                          value={zKmh}
+                          onChange={(e) => handleZoneSpeedChange(z.id, e.target.value)}
+                          className="w-11 bg-transparent text-yellow-400 font-mono font-black text-xs text-right focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">km/h</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Cards Superiores de Carga */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <span className="text-xs text-slate-400 uppercase font-bold">Carga Interna Acumulada (sRPE)</span>
+                <span className="text-xs text-slate-400 uppercase font-bold">Aderência &amp; Distância Confirmada</span>
+                <div className="text-3xl font-black text-yellow-400 mt-1">
+                  {stats.doneCount} / {stats.totalDays} <span className="text-base font-normal text-slate-400">dias ({stats.progressPct}%)</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mt-2.5">
+                  <div className="h-full bg-yellow-400" style={{ width: `${stats.progressPct}%` }} />
+                </div>
+                <p className="text-xs text-slate-400 mt-2 font-mono">
+                  Corrida Confirmada: <strong className="text-emerald-400">{stats.confirmedDistanceKm} km</strong> / {stats.plannedDistanceKm} km
+                </p>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <span className="text-xs text-slate-400 uppercase font-bold">Carga Interna Confirmada (sRPE)</span>
                 <div className="text-3xl font-black text-cyan-400 mt-1">
                   {stats.loggedLoadUnits.toLocaleString()} <span className="text-sm font-normal text-slate-400">/ {stats.plannedLoadUnits.toLocaleString()} UA</span>
                 </div>
                 <p className="text-xs text-slate-400 mt-2">
-                  Calculado por Perceção Subjetiva de Esforço (Borg) × Duração em minutos.
+                  Calculado pelos treinos salvos/confirmados (RPE Real × Duração Real).
                 </p>
               </div>
 
               <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
-                <span className="text-xs text-slate-400 uppercase font-bold">Regra de Posicionamento Semanal</span>
-                <div className="text-sm font-bold text-emerald-400 mt-1">
-                  Polarização Hard / Easy Ativa
+                <span className="text-xs text-slate-400 uppercase font-bold">Velocidade Média Confirmada vs. GRP</span>
+                <div className="text-2xl font-black text-emerald-400 mt-1 font-mono">
+                  {stats.avgConfirmedSpeedKmh} km/h <span className="text-sm font-normal text-slate-400">({stats.avgConfirmedPaceStr}/km)</span>
                 </div>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  A corrida comprometida (Quinta, índice 9/10) é sempre rodeada por sessões de menor impacto articular (Quarta Zona 2 e Sexta Ergómetros).
+                  Alvo GRP (Z3): <strong className="text-white">{runningZonesKmh.Z3} km/h ({goalPace}/km)</strong> • Z4 Limiar: <strong className="text-amber-300">{runningZonesKmh.Z4} km/h</strong>
                 </p>
               </div>
             </div>
@@ -3495,21 +4259,22 @@ function App() {
                         1A • Gráfico de Linha (Line Chart)
                       </span>
                       <h3 className="text-base font-black text-white uppercase mt-1">
-                        Evolução de Desempenho, Tonelagem &amp; Ritmo (26 Dias)
+                        Evolução de Carga, Velocidade (km/h), Força &amp; Pace
                       </h3>
                     </div>
-                    <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold self-start">
+                    <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold self-start">
                       {[
                         { id: 'SRPE', label: 'Carga (sRPE)' },
+                        { id: 'SPEED_KMH', label: 'Vel. (km/h)' },
                         { id: 'STRENGTH_RM', label: 'Força (%1RM)' },
                         { id: 'PACE', label: 'Pace (/km)' }
                       ].map((m) => (
                         <button
                           key={m.id}
                           onClick={() => setEvolutionMetric(m.id)}
-                          className={`px-2.5 py-1 rounded-lg transition-all ${
+                          className={`px-2 py-1 rounded-lg transition-all ${
                             evolutionMetric === m.id
-                              ? 'bg-cyan-400 text-slate-950'
+                              ? 'bg-cyan-400 text-slate-950 font-black'
                               : 'text-slate-400 hover:text-white'
                           }`}
                         >
@@ -3520,9 +4285,10 @@ function App() {
                   </div>
 
                   <p className="text-xs text-slate-400 mt-2">
-                    {evolutionMetric === 'SRPE' && 'Acompanhe a sobrecarga progressiva (M1 → M2) e o Tapering (M4) comparando a Carga Planeada vs. Realizada (UA).'}
+                    {evolutionMetric === 'SRPE' && 'Acompanhe a sobrecarga progressiva (M1 → M2) e o Tapering (M4) comparando a Carga Confirmada/Realizada vs. Planeada (linha tracejada).'}
+                    {evolutionMetric === 'SPEED_KMH' && 'Velocidade real usada na corrida (km/h) em cada dia salvo/confirmado comparada à velocidade da Zona Prescrita (Z1–Z5).'}
                     {evolutionMetric === 'STRENGTH_RM' && 'Tendência da intensidade relativa (% de 1RM e solicitação neuromuscular) ao longo das 4 semanas.'}
-                    {evolutionMetric === 'PACE' && 'Evolução do ritmo específico de corrida por sessão face ao seu Goal Race Pace (GRP).'}
+                    {evolutionMetric === 'PACE' && 'Evolução do ritmo específico de corrida (min/km) por sessão face ao seu Goal Race Pace (GRP).'}
                   </p>
 
                   {/* SVG Line Chart */}
@@ -3531,7 +4297,7 @@ function App() {
                       const pts = analyticsData.evolutionSeries;
                       const chartW = 540;
                       const chartH = 210;
-                      const padL = 42;
+                      const padL = 44;
                       const padR = 18;
                       const padT = 18;
                       const padB = 34;
@@ -3539,19 +4305,26 @@ function App() {
                       const plotH = chartH - padT - padB;
 
                       const getVal = (p) => {
-                        if (evolutionMetric === 'SRPE') return p.actualSRPE;
-                        if (evolutionMetric === 'STRENGTH_RM') return p.strengthIntensityPct;
+                        if (evolutionMetric === 'SRPE') return p.effectiveSRPE;
+                        if (evolutionMetric === 'SPEED_KMH') return p.effectiveSpeedKmh;
+                        if (evolutionMetric === 'STRENGTH_RM') return analyticsScope === 'CONFIRMED_ONLY' && !p.isCompleted ? 0 : p.strengthIntensityPct;
                         return p.targetPaceSec;
                       };
-                      const getPlanVal = (p) => p.plannedSRPE;
+                      const getPlanVal = (p) => {
+                        if (evolutionMetric === 'SPEED_KMH') return p.prescribedSpeedKmh;
+                        if (evolutionMetric === 'PACE') return p.prescribedPaceSec;
+                        return p.plannedSRPE;
+                      };
 
                       const maxVal = evolutionMetric === 'SRPE'
-                        ? Math.max(1500, ...pts.map((p) => Math.max(p.plannedSRPE, p.actualSRPE)))
+                        ? Math.max(1500, ...pts.map((p) => Math.max(p.plannedSRPE, p.effectiveSRPE)))
+                        : evolutionMetric === 'SPEED_KMH'
+                        ? Math.max(18, ...pts.map((p) => Math.max(p.prescribedSpeedKmh, p.usedSpeedKmh)) + 1.5)
                         : evolutionMetric === 'STRENGTH_RM'
                         ? 100
-                        : Math.max(360, ...pts.map((p) => p.targetPaceSec));
+                        : Math.max(360, ...pts.map((p) => Math.max(p.targetPaceSec, p.prescribedPaceSec)));
                       const minVal = evolutionMetric === 'PACE'
-                        ? Math.min(210, ...pts.map((p) => p.targetPaceSec)) - 10
+                        ? Math.min(200, ...pts.map((p) => Math.min(p.targetPaceSec, p.prescribedPaceSec))) - 10
                         : 0;
 
                       const toX = (idx) => padL + (idx / (pts.length - 1)) * plotW;
@@ -3565,12 +4338,14 @@ function App() {
                           {/* Grelha horizontal */}
                           {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
                             const y = padT + plotH * (1 - t);
-                            const val = Math.round(minVal + t * (maxVal - minVal));
+                            const rawVal = minVal + t * (maxVal - minVal);
                             const label = evolutionMetric === 'PACE'
-                              ? formatTimer(val)
+                              ? formatTimer(Math.round(rawVal))
+                              : evolutionMetric === 'SPEED_KMH'
+                              ? `${rawVal.toFixed(1)}`
                               : evolutionMetric === 'STRENGTH_RM'
-                              ? `${val}%`
-                              : val;
+                              ? `${Math.round(rawVal)}%`
+                              : Math.round(rawVal);
                             return (
                               <g key={i}>
                                 <line x1={padL} y1={y} x2={chartW - padR} y2={y} stroke="#1e293b" strokeDasharray="3 3" />
@@ -3589,8 +4364,8 @@ function App() {
                             );
                           })}
 
-                          {/* Linha Planeada de referência (quando em modo sRPE) */}
-                          {evolutionMetric === 'SRPE' && (
+                          {/* Linha Planeada / Prescrita de referência */}
+                          {(evolutionMetric === 'SRPE' || evolutionMetric === 'SPEED_KMH' || evolutionMetric === 'PACE') && (
                             <polyline
                               fill="none"
                               stroke="#64748b"
@@ -3603,7 +4378,15 @@ function App() {
                           {/* Linha Principal de Evolução */}
                           <polyline
                             fill="none"
-                            stroke={evolutionMetric === 'SRPE' ? '#22d3ee' : evolutionMetric === 'STRENGTH_RM' ? '#facc15' : '#34d399'}
+                            stroke={
+                              evolutionMetric === 'SRPE'
+                                ? '#22d3ee'
+                                : evolutionMetric === 'SPEED_KMH'
+                                ? '#38bdf8'
+                                : evolutionMetric === 'STRENGTH_RM'
+                                ? '#facc15'
+                                : '#34d399'
+                            }
                             strokeWidth="2.5"
                             points={primaryPoly}
                           />
@@ -3622,9 +4405,17 @@ function App() {
                                 <circle
                                   cx={cx}
                                   cy={cy}
-                                  r={isSel ? 5 : p.isCompleted ? 3.5 : 2.5}
+                                  r={isSel ? 5.5 : p.isCompleted ? 4 : 2.5}
                                   fill={isSel ? '#facc15' : p.isCompleted ? '#34d399' : '#0f172a'}
-                                  stroke={evolutionMetric === 'SRPE' ? '#22d3ee' : evolutionMetric === 'STRENGTH_RM' ? '#facc15' : '#34d399'}
+                                  stroke={
+                                    evolutionMetric === 'SRPE'
+                                      ? '#22d3ee'
+                                      : evolutionMetric === 'SPEED_KMH'
+                                      ? '#38bdf8'
+                                      : evolutionMetric === 'STRENGTH_RM'
+                                      ? '#facc15'
+                                      : '#34d399'
+                                  }
                                   strokeWidth="1.8"
                                 />
                                 {(i % 4 === 0 || i === 25) && (
@@ -3641,10 +4432,15 @@ function App() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
-                  <span>Clique num ponto para selecionar o Dia (D{selectedDayNum}: {analyticsData.currentDayPoint.date})</span>
-                  <span className="font-mono text-cyan-300">
-                    M1 → M2 (Pico) → M3 → M4 (Taper)
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+                  <span>
+                    D{selectedDayNum} ({analyticsData.currentDayPoint.date}):{' '}
+                    <strong className="text-yellow-400">
+                      Zona {analyticsData.currentDayPoint.usedZoneKey} • {analyticsData.currentDayPoint.usedSpeedKmh} km/h
+                    </strong>
+                  </span>
+                  <span className="font-mono text-emerald-400">
+                    ● Verde = Dia Confirmado | Tracejado = Prescrito
                   </span>
                 </div>
               </div>
@@ -3899,13 +4695,23 @@ function App() {
                                 </text>
                                 <text
                                   x={cx}
-                                  y={padT + plotH + 18}
+                                  y={padT + plotH + 16}
                                   textAnchor="middle"
                                   fill="#cbd5e1"
-                                  fontSize="10"
+                                  fontSize="9.5"
                                   fontWeight="bold"
                                 >
                                   {b.shortLabel}
+                                </text>
+                                <text
+                                  x={cx}
+                                  y={padT + plotH + 28}
+                                  textAnchor="middle"
+                                  fill="#34d399"
+                                  fontSize="8.5"
+                                  fontFamily="monospace"
+                                >
+                                  {b.confirmedDaysInMc}/{b.totalActiveDaysInMc} conf.
                                 </text>
                               </g>
                             );
@@ -4135,7 +4941,9 @@ function App() {
                   {/* SVG Scatter Plot */}
                   <div className="mt-4 bg-slate-950/90 border border-slate-800/80 rounded-xl p-3">
                     {(() => {
-                      const pts = analyticsData.evolutionSeries.filter((p) => p.loadIndex > 0);
+                      const pts = analyticsData.evolutionSeries.filter((p) =>
+                        analyticsScope === 'CONFIRMED_ONLY' ? p.isCompleted && p.loadIndex > 0 : p.loadIndex > 0
+                      );
                       const chartW = 540;
                       const chartH = 215;
                       const padL = 42;
@@ -4212,10 +5020,10 @@ function App() {
                                 <circle
                                   cx={cx}
                                   cy={cy}
-                                  r={isSel ? 6.5 : 4.5}
+                                  r={isSel ? 6.5 : p.isCompleted ? 5 : 4}
                                   fill={fill}
-                                  fillOpacity="0.85"
-                                  stroke={isSel ? '#ffffff' : '#020617'}
+                                  fillOpacity={p.isCompleted ? '0.95' : '0.65'}
+                                  stroke={isSel ? '#ffffff' : p.isCompleted ? '#10b981' : '#020617'}
                                   strokeWidth={isSel ? 2 : 1.2}
                                 />
                                 <text x={cx} y={cy - 7} textAnchor="middle" fill="#cbd5e1" fontSize="8.5" fontFamily="monospace">

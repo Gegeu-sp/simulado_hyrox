@@ -63,7 +63,11 @@ A aba **Analytics & Gráficos (7)** implementa um motor vetorial interativo em *
 
 Todas as atualizações estruturais e evolutivas do projeto são registadas abaixo:
 
-- **v1.3.2 (Atual) — Correção de Inicialização, Pré-Compilação JS Nativa & Auto-Recuperação de Cache PWA (`004-fix-startup-reliability`)**:
+- **v1.4.0 (Atual) — Zonas de Corrida Editáveis (`km/h` ↔ `min/km`), Registo Diário de Velocidade Usada & Fidelidade 100% aos Dados Salvos nos 7 Gráficos (`005-real-data-zones-sync`)**:
+  - **Matriz Editável das 5 Zonas de Corrida (`Z1` a `Z5`)**: Edição direta da velocidade (`km/h`) e pace (`min/km`) de cada zona com conversão bidirecional instantânea (`km/h = 3600 / paceSec`) e sincronização com o *Goal Race Pace (GRP)* no cabeçalho, no Treino do Dia e na aba *Analytics & Gráficos (7)*;
+  - **Registo e Confirmação Diária de Corrida e Carga (`dayLogs`)**: Seleção da **Zona Executada (`Z1`–`Z5`)**, **Velocidade Usada (`km/h`)**, **Pace Real (`/km`)** e **Distância (`km`)** em cada sessão, com botão explícito **"✓ Salvar & Confirmar Dados do Dia"**;
+  - **Fidelidade 100% aos Dados Salvos & Confirmados nos 7 Gráficos**: Eliminação de matrizes estáticas na composição de microciclos (Gráfico 2A) e acumulação muscular (Gráfico 1B), adição da métrica **Velocidade (`km/h`)** no Gráfico 1A (*Line Chart*) e seletor interativo entre **`✓ Apenas Dados Salvos & Confirmados (Fidedigno)`** e **`Confirmados + Planeado (26 Dias)`**.
+- **v1.3.2 — Correção de Inicialização, Pré-Compilação JS Nativa & Auto-Recuperação de Cache PWA (`004-fix-startup-reliability`)**:
   - Correção do erro de inicialização (`ReferenceError: Cannot access 'formatTimer' before initialization` / *Temporal Dead Zone*) durante o cálculo síncrono do motor analítico;
   - Pré-compilação integral do código JSX para JavaScript nativo (`React.createElement`), eliminando 100% da dependência de `@babel/standalone` em tempo de execução e reduzindo o tempo de arranque para `< 100ms`;
   - Implementação de redundância tripla síncrona de CDNs (`jsDelivr` → `unpkg` → `Cloudflare cdnjs`), `HyroxErrorBoundary`, leitura defensiva de `localStorage` (`safeGetItem`/`safeGetJSON`) e auto-limpeza de caches antigos (`hyrox-periodizacao-pwa-v4`, estritamente *same-origin*).
