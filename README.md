@@ -111,6 +111,3 @@ Todas as atualizações estruturais e evolutivas do projeto são registadas abai
 **Projeto desenvolvido por Argeu Rodrigues**  
 🎓 4º semestre de ADS na Faculdade Anhembi Morumbi  
 🏋️‍♂️ Personal Trainer | CREF: 158814-G/SP  
-
-- **LinkedIn**: [br.linkedin.com/in/argeu-rodrigues-9a6b7174](https://br.linkedin.com/in/argeu-rodrigues-9a6b7174)
-- **GitHub**: [https://github.com/Gegeu-sp](https://github.com/Gegeu-sp)
