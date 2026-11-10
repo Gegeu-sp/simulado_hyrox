@@ -128,6 +128,11 @@ const Download = createSvgIcon(React.createElement(React.Fragment, null, React.c
 const Upload = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), React.createElement("polyline", { "points": "17 8 12 3 7 8" }), React.createElement("line", { "x1": "12", "x2": "12", "y1": "3", "y2": "15" })));
 const RefreshCw = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }), React.createElement("path", { "d": "M21 3v5h-5" }), React.createElement("path", { "d": "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }), React.createElement("path", { "d": "M8 16H3v5" })));
 const X = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M18 6 6 18" }), React.createElement("path", { "d": "m6 6 12 12" })));
+const Database = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("ellipse", { "cx": "12", "cy": "5", "rx": "9", "ry": "3" }), React.createElement("path", { "d": "M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" }), React.createElement("path", { "d": "M3 12c0 1.66 4 3 9 3s9-1.34 9-3" })));
+const Users = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" }), React.createElement("circle", { "cx": "9", "cy": "7", "r": "4" }), React.createElement("path", { "d": "M22 21v-2a4 4 0 0 0-3-3.87" }), React.createElement("path", { "d": "M16 3.13a4 4 0 0 1 0 7.75" })));
+const Plus = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("line", { "x1": "12", "x2": "12", "y1": "5", "y2": "19" }), React.createElement("line", { "x1": "5", "x2": "19", "y1": "12", "y2": "12" })));
+const Copy = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("rect", { "width": "14", "height": "14", "x": "8", "y": "8", "rx": "2", "ry": "2" }), React.createElement("path", { "d": "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" })));
+const Trash2 = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M3 6h18" }), React.createElement("path", { "d": "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" }), React.createElement("path", { "d": "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" })));
 
 // ==========================================
 // EXERCÍCIOS DE FORÇA BASE & 1RM PADRÃO
@@ -1107,6 +1112,124 @@ const getDayPlannedRunDistanceKm = (day) => {
   return distByDay[day.dayNum] !== undefined ? distByDay[day.dayNum] : 4.0;
 };
 
+// Motor Analítico de Cálculo de Métricas e Radar 5D para qualquer Aluno/Atleta guardado no Banco de Dados (Feature 006)
+const computeRecordSummaryMetrics = (record) => {
+  if (!record || typeof record !== 'object') {
+    return {
+      doneCount: 0,
+      progressPct: 0,
+      loggedLoadUnits: 0,
+      confirmedDistanceKm: 0,
+      avgConfirmedSpeedKmh: 12.6,
+      avgConfirmedPaceStr: '04:45',
+      grpSpeedKmh: 12.6,
+      grpPaceStr: '04:45',
+      totalRoxzoneSec: 352,
+      avg1RMKg: 80,
+      relativeBackSquat: 1.4,
+      radar: { strength: 70, endurance: 70, mobility: 70, power: 70, speed: 70, overall: 70 }
+    };
+  }
+  const weight = Math.max(35, Math.min(200, parseFloat(record.athleteWeight) || 75));
+  const paceStr = typeof record.goalPace === 'string' && record.goalPace.includes(':') ? record.goalPace : '04:45';
+  const zones = record.runningZonesKmh && typeof record.runningZonesKmh === 'object'
+    ? record.runningZonesKmh
+    : buildDefaultRunningZonesKmh(paceStr);
+  const completed = record.completedDays && typeof record.completedDays === 'object' ? record.completedDays : {};
+  const logs = record.dayLogs && typeof record.dayLogs === 'object' ? record.dayLogs : {};
+  const rms = record.oneRMs && typeof record.oneRMs === 'object' ? record.oneRMs : {};
+  const roxSec = Math.max(12, Math.min(60, parseInt(record.roxzoneTargetSec, 10) || 22));
+  const fracKey = ['SAFE_80_20', 'BALANCED_PARETO', 'ELITE_DENSITY'].includes(record.fractionationProfile)
+    ? record.fractionationProfile
+    : 'BALANCED_PARETO';
+
+  const doneCount = Object.values(completed).filter(Boolean).length;
+  const progressPct = Math.round((doneCount / WORKOUT_DAYS.length) * 100);
+
+  let loggedLoadUnits = 0;
+  let confirmedDistanceKm = 0;
+  let speedSum = 0;
+  let speedCount = 0;
+
+  WORKOUT_DAYS.forEach((d) => {
+    const isDone = Boolean(completed[d.dayNum]);
+    const log = logs[d.dayNum] || {};
+    const hasLog = log.rpe !== undefined || log.duration !== undefined || log.usedSpeedKmh !== undefined || log.distanceKm !== undefined;
+    const isConfirmed = isDone || hasLog;
+    if (isConfirmed) {
+      const rpe = log.rpe !== undefined ? Number(log.rpe) : (d.loadIndex === 0 ? 0 : d.loadIndex + 9);
+      const dur = log.duration !== undefined ? Number(log.duration) : d.durationMin;
+      loggedLoadUnits += Math.round(rpe * dur);
+      const dist = log.distanceKm !== undefined ? Number(log.distanceKm) : getDayPlannedRunDistanceKm(d);
+      confirmedDistanceKm += dist;
+      const zKey = log.usedZone || getDayPrescribedZoneKey(d);
+      const spd = log.usedSpeedKmh !== undefined
+        ? Number(log.usedSpeedKmh)
+        : (zKey !== 'REST' ? (zones[zKey] || zones.Z3 || 12.6) : 0);
+      if (spd > 0 && d.category !== 'REST') {
+        speedSum += spd;
+        speedCount += 1;
+      }
+    }
+  });
+
+  const grpSpeedKmh = Number(zones.Z3) || paceSecToKmh(paceStrToSeconds(paceStr, 285));
+  const avgConfirmedSpeedKmh = speedCount > 0 ? Math.round((speedSum / speedCount) * 10) / 10 : grpSpeedKmh;
+  const avgConfirmedPaceStr = kmhToPaceStr(avgConfirmedSpeedKmh);
+
+  const bs = Number(rms.backSquat) || 110;
+  const dl = Number(rms.trapBarDeadlift) || 140;
+  const rdl = Number(rms.rdl) || 100;
+  const pp = Number(rms.dbPushPress) || 24;
+  const lunge = Number(rms.barbellWalkingLunges) || 60;
+  const bss = Number(rms.bulgarianSplitSquat) || 60;
+
+  const strengthRatio = (bs / (weight * 1.65) + dl / (weight * 2.05) + rdl / (weight * 1.45)) / 3;
+  const strengthScore = Math.min(100, Math.max(35, Math.round(strengthRatio * 82)));
+
+  const grpSec = paceStrToSeconds(paceStr, 285);
+  const paceScore = Math.min(100, Math.max(40, Math.round(((375 - grpSec) / (375 - 220)) * 60 + 40)));
+  const z2SpeedBonus = Math.min(12, Math.max(-8, Math.round(((Number(zones.Z2) || 11.0) - 10.5) * 2.5)));
+  const enduranceScore = Math.min(100, Math.max(40, Math.round(paceScore * 0.75 + (progressPct * 0.25) + 12 + z2SpeedBonus)));
+
+  const roxScore = Math.min(100, Math.max(40, Math.round(((45 - roxSec) / (45 - 15)) * 55 + 45)));
+  const unilateralRatio = ((lunge + bss) / 2) / (weight * 0.9);
+  const mobilityScore = Math.min(100, Math.max(42, Math.round(roxScore * 0.55 + Math.min(100, unilateralRatio * 80) * 0.45)));
+
+  const powerRatio = (pp * 2) / (weight * 0.72) * 0.5 + (dl / (weight * 2.0)) * 0.5;
+  const fracBonus = fracKey === 'ELITE_DENSITY' ? 8 : fracKey === 'BALANCED_PARETO' ? 4 : 0;
+  const powerScore = Math.min(100, Math.max(40, Math.round(powerRatio * 78 + fracBonus)));
+
+  const z4z5Bonus = Math.min(14, Math.max(-8, Math.round((((Number(zones.Z4) || 13.3) + (Number(zones.Z5) || 14.0)) / 2 - 13.0) * 3)));
+  const speedScore = Math.min(100, Math.max(40, Math.round(paceScore * 0.72 + roxScore * 0.28 + z4z5Bonus)));
+  const overall = Math.round((strengthScore + enduranceScore + mobilityScore + powerScore + speedScore) / 5);
+
+  const rmValues = Object.values(STRENGTH_EXERCISES).map((ex) => Number(rms[ex.id]) || ex.default1RM);
+  const avg1RMKg = Math.round((rmValues.reduce((a, b) => a + b, 0) / rmValues.length) * 10) / 10;
+
+  return {
+    doneCount,
+    progressPct,
+    loggedLoadUnits,
+    confirmedDistanceKm: Math.round(confirmedDistanceKm * 10) / 10,
+    avgConfirmedSpeedKmh,
+    avgConfirmedPaceStr,
+    grpSpeedKmh,
+    grpPaceStr: paceStr,
+    totalRoxzoneSec: roxSec * 16,
+    avg1RMKg,
+    relativeBackSquat: Math.round((bs / weight) * 100) / 100,
+    radar: {
+      strength: strengthScore,
+      endurance: enduranceScore,
+      mobility: mobilityScore,
+      power: powerScore,
+      speed: speedScore,
+      overall
+    }
+  };
+};
+
 function App() {
   // Estados principais com persistência segura em localStorage
   const [selectedDayNum, setSelectedDayNum] = useState(() => {
@@ -1210,10 +1333,94 @@ function App() {
   const [calcReps, setCalcReps] = useState(5);
   const [calcTargetEx, setCalcTargetEx] = useState('backSquat');
 
-  const [activeTab, setActiveTab] = useState('TODAY'); // TODAY, CALENDAR, STRENGTH_RM, LOAD, STRATEGY, NUTRITION
+  const [activeTab, setActiveTab] = useState('TODAY'); // TODAY, CALENDAR, STRENGTH_RM, LOAD, STRATEGY, NUTRITION, DATABASE
+
+  // Banco de Dados de Alunos & Atletas + Histórico Comparativo Longitudinal (Feature 006)
+  const [activeAthleteId, setActiveAthleteId] = useState(() => {
+    return safeGetItem('hyrox_active_athlete_id', 'atleta-principal') || 'atleta-principal';
+  });
+
+  const [athletesDatabase, setAthletesDatabase] = useState(() => {
+    const saved = safeGetJSON('hyrox_athletes_database_v1', null);
+    if (Array.isArray(saved) && saved.length > 0) {
+      return saved;
+    }
+    const defaultRMs = {};
+    Object.values(STRENGTH_EXERCISES).forEach((ex) => {
+      defaultRMs[ex.id] = ex.default1RM;
+    });
+    const benchRMs = {
+      backSquat: 135,
+      frontSquat: 105,
+      trapBarDeadlift: 170,
+      rdl: 125,
+      bulgarianSplitSquat: 76,
+      barbellWalkingLunges: 74,
+      gobletSquat: 44,
+      dbPushPress: 28,
+      bentOverRow: 92
+    };
+    const nowIso = new Date().toISOString();
+    return [
+      {
+        id: 'atleta-principal',
+        name: 'Atleta Principal (Meu Perfil)',
+        roleOrCategory: 'Atleta Titular • Ciclo 26 Dias',
+        coachNotes: 'Perfil principal sincronizado automaticamente em tempo real.',
+        recordType: 'ATHLETE',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        divisionKey: safeGetItem('hyrox_division', 'MEN_OPEN') || 'MEN_OPEN',
+        athleteWeight: parseFloat(safeGetItem('hyrox_weight', '75')) || 75,
+        goalPace: safeGetItem('hyrox_pace', '04:45') || '04:45',
+        runningZonesKmh: safeGetJSON('hyrox_running_zones_kmh', null) || buildDefaultRunningZonesKmh(safeGetItem('hyrox_pace', '04:45') || '04:45'),
+        completedDays: safeGetJSON('hyrox_completed_days', {}),
+        dayLogs: safeGetJSON('hyrox_day_logs', {}),
+        oneRMs: safeGetJSON('hyrox_one_rms', null) ? { ...defaultRMs, ...safeGetJSON('hyrox_one_rms', null) } : defaultRMs,
+        customPcts: safeGetJSON('hyrox_custom_pcts', {}),
+        roxzoneTargetSec: parseInt(safeGetItem('hyrox_roxzone_sec', '22'), 10) || 22,
+        fractionationProfile: safeGetItem('hyrox_fractionation_profile', 'BALANCED_PARETO') || 'BALANCED_PARETO'
+      },
+      {
+        id: 'benchmark-hyrox-pro',
+        name: 'Referência HYROX Sub-65m (Benchmark)',
+        roleOrCategory: 'Benchmark Competitivo • Alvo Comparativo',
+        coachNotes: 'Perfil de referência com zonas de corrida calibradas a 04:20/km (13.8 km/h) e força estabilizada para comparação lado a lado.',
+        recordType: 'BENCHMARK',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        divisionKey: 'MEN_OPEN',
+        athleteWeight: 76,
+        goalPace: '04:20',
+        runningZonesKmh: buildDefaultRunningZonesKmh('04:20'),
+        completedDays: { 1: true, 2: true, 3: true, 4: true, 5: true, 7: true, 8: true, 9: true },
+        dayLogs: {
+          1: { rpe: 7, duration: 70, usedZone: 'Z2', usedSpeedKmh: 12.1, usedPace: '04:58', distanceKm: 1.5, notes: 'Força sólida' },
+          2: { rpe: 6, duration: 60, usedZone: 'Z2', usedSpeedKmh: 12.3, usedPace: '04:53', distanceKm: 9.0, notes: 'Aeróbio estável' },
+          3: { rpe: 8, duration: 65, usedZone: 'Z3', usedSpeedKmh: 13.8, usedPace: '04:21', distanceKm: 4.8, notes: 'Compromised forte' },
+          7: { rpe: 9, duration: 85, usedZone: 'Z3', usedSpeedKmh: 13.8, usedPace: '04:21', distanceKm: 7.5, notes: 'Simulação controlada' }
+        },
+        oneRMs: benchRMs,
+        customPcts: {},
+        roxzoneTargetSec: 18,
+        fractionationProfile: 'ELITE_DENSITY'
+      }
+    ];
+  });
+
+  const [compareIdA, setCompareIdA] = useState('atleta-principal');
+  const [compareIdB, setCompareIdB] = useState('benchmark-hyrox-pro');
+  const [newAthleteName, setNewAthleteName] = useState('');
+  const [newAthleteRole, setNewAthleteRole] = useState('Aluno / Atleta HYROX');
+  const [newAthleteDivision, setNewAthleteDivision] = useState('MEN_OPEN');
+  const [newAthleteWeight, setNewAthleteWeight] = useState(75);
+  const [newAthletePace, setNewAthletePace] = useState('04:45');
+  const [newAthleteStartClean, setNewAthleteStartClean] = useState(true);
+  const [snapshotCustomLabel, setSnapshotCustomLabel] = useState('');
+  const [dbBannerMsg, setDbBannerMsg] = useState('');
 
   // Estados Interativos da Suite de 7 Gráficos Analíticos & Pareto (Feature 003 - T002)
-  const [evolutionMetric, setEvolutionMetric] = useState('SRPE'); // SRPE, STRENGTH_RM, PACE
+  const [evolutionMetric, setEvolutionMetric] = useState('SRPE'); // SRPE, STRENGTH_RM, PACE, SPEED_KMH
   const [compositionMode, setCompositionMode] = useState('MUSCLE_SETS'); // MUSCLE_SETS, HR_ZONES
   const [paretoMetric, setParetoMetric] = useState('FATIGUE'); // FATIGUE, TIME_LOSS
   const [hoveredDayNum, setHoveredDayNum] = useState(null);
@@ -1295,6 +1502,236 @@ function App() {
     safeSetItem('hyrox_firebase_project_id', firebaseProjectId);
   }, [firebaseProjectId]);
 
+  useEffect(() => {
+    safeSetItem('hyrox_active_athlete_id', activeAthleteId);
+  }, [activeAthleteId]);
+
+  // Auto-Save Contínuo: mantém o registo do aluno/atleta ativo sempre atualizado dentro do Banco de Dados
+  useEffect(() => {
+    setAthletesDatabase((prevDb) => {
+      if (!Array.isArray(prevDb) || prevDb.length === 0) return prevDb;
+      const idx = prevDb.findIndex((item) => item.id === activeAthleteId);
+      const updatedFields = {
+        updatedAt: new Date().toISOString(),
+        divisionKey,
+        athleteWeight,
+        goalPace,
+        runningZonesKmh,
+        completedDays,
+        dayLogs,
+        oneRMs,
+        customPcts,
+        roxzoneTargetSec,
+        fractionationProfile
+      };
+      let nextDb;
+      if (idx >= 0) {
+        nextDb = prevDb.map((item, i) => (i === idx ? { ...item, ...updatedFields } : item));
+      } else {
+        nextDb = [
+          {
+            id: activeAthleteId || 'atleta-principal',
+            name: 'Atleta Principal (Meu Perfil)',
+            roleOrCategory: 'Atleta Titular • Ciclo 26 Dias',
+            coachNotes: '',
+            recordType: 'ATHLETE',
+            createdAt: new Date().toISOString(),
+            ...updatedFields
+          },
+          ...prevDb
+        ];
+      }
+      safeSetItem('hyrox_athletes_database_v1', JSON.stringify(nextDb));
+      return nextDb;
+    });
+  }, [
+    activeAthleteId,
+    divisionKey,
+    athleteWeight,
+    goalPace,
+    runningZonesKmh,
+    completedDays,
+    dayLogs,
+    oneRMs,
+    customPcts,
+    roxzoneTargetSec,
+    fractionationProfile
+  ]);
+
+  const activeAthleteRecord = useMemo(() => {
+    return athletesDatabase.find((a) => a.id === activeAthleteId) || athletesDatabase[0] || {
+      id: 'atleta-principal',
+      name: 'Atleta Principal',
+      roleOrCategory: 'Atleta HYROX',
+      coachNotes: ''
+    };
+  }, [athletesDatabase, activeAthleteId]);
+
+  const handleSelectActiveAthlete = (targetId) => {
+    const target = athletesDatabase.find((a) => a.id === targetId);
+    if (!target) return;
+    setActiveAthleteId(target.id);
+    if (['WOMEN_OPEN', 'MEN_OPEN', 'WOMEN_PRO', 'MEN_PRO'].includes(target.divisionKey)) {
+      setDivisionKey(target.divisionKey);
+    }
+    if (target.athleteWeight >= 35 && target.athleteWeight <= 200) {
+      setAthleteWeight(Number(target.athleteWeight));
+    }
+    const safePace = typeof target.goalPace === 'string' && target.goalPace.includes(':') ? target.goalPace : '04:45';
+    setGoalPace(safePace);
+    setRunningZonesKmh(
+      target.runningZonesKmh && typeof target.runningZonesKmh === 'object'
+        ? { ...buildDefaultRunningZonesKmh(safePace), ...target.runningZonesKmh }
+        : buildDefaultRunningZonesKmh(safePace)
+    );
+    setCompletedDays(target.completedDays && typeof target.completedDays === 'object' ? target.completedDays : {});
+    setDayLogs(target.dayLogs && typeof target.dayLogs === 'object' ? target.dayLogs : {});
+    if (target.oneRMs && typeof target.oneRMs === 'object') {
+      const defaults = {};
+      Object.values(STRENGTH_EXERCISES).forEach((ex) => { defaults[ex.id] = ex.default1RM; });
+      setOneRMs({ ...defaults, ...target.oneRMs });
+    }
+    if (target.customPcts && typeof target.customPcts === 'object') {
+      setCustomPcts((prev) => ({ ...prev, ...target.customPcts }));
+    }
+    if (target.roxzoneTargetSec >= 12 && target.roxzoneTargetSec <= 60) {
+      setRoxzoneTargetSec(Number(target.roxzoneTargetSec));
+    }
+    if (['SAFE_80_20', 'BALANCED_PARETO', 'ELITE_DENSITY'].includes(target.fractionationProfile)) {
+      setFractionationProfile(target.fractionationProfile);
+    }
+    setCompareIdA(target.id);
+    setDbBannerMsg(`Perfil "${target.name}" carregado e sincronizado em todas as abas e gráficos!`);
+    setTimeout(() => setDbBannerMsg(''), 4500);
+  };
+
+  const handleUpdateActiveAthleteMeta = (field, value) => {
+    setAthletesDatabase((prevDb) => {
+      const nextDb = prevDb.map((item) =>
+        item.id === activeAthleteId
+          ? { ...item, [field]: value, updatedAt: new Date().toISOString() }
+          : item
+      );
+      safeSetItem('hyrox_athletes_database_v1', JSON.stringify(nextDb));
+      return nextDb;
+    });
+  };
+
+  const handleCreateNewAthlete = () => {
+    const cleanName = String(newAthleteName || '').trim();
+    if (!cleanName) {
+      setDbBannerMsg('Por favor, indique o nome do Aluno ou Atleta para registar no Banco de Dados.');
+      setTimeout(() => setDbBannerMsg(''), 4000);
+      return;
+    }
+    const newId = `aluno-${Date.now()}`;
+    const safePace = typeof newAthletePace === 'string' && /^\d{1,2}:\d{2}$/.test(newAthletePace.trim())
+      ? newAthletePace.trim()
+      : '04:45';
+    const safeW = Math.max(35, Math.min(200, parseFloat(newAthleteWeight) || 75));
+    const safeDiv = DIVISIONS[newAthleteDivision] ? newAthleteDivision : 'MEN_OPEN';
+    const defaultRMs = {};
+    Object.values(STRENGTH_EXERCISES).forEach((ex) => {
+      defaultRMs[ex.id] = ex.default1RM;
+    });
+    const nowIso = new Date().toISOString();
+    const newRecord = {
+      id: newId,
+      name: cleanName,
+      roleOrCategory: String(newAthleteRole || 'Aluno / Atleta HYROX').trim(),
+      coachNotes: 'Registo criado no Banco de Dados de Alunos & Atletas.',
+      recordType: 'ATHLETE',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      divisionKey: safeDiv,
+      athleteWeight: safeW,
+      goalPace: safePace,
+      runningZonesKmh: newAthleteStartClean ? buildDefaultRunningZonesKmh(safePace) : { ...runningZonesKmh },
+      completedDays: newAthleteStartClean ? {} : { ...completedDays },
+      dayLogs: newAthleteStartClean ? {} : { ...dayLogs },
+      oneRMs: newAthleteStartClean ? defaultRMs : { ...oneRMs },
+      customPcts: { ...customPcts },
+      roxzoneTargetSec: newAthleteStartClean ? 22 : roxzoneTargetSec,
+      fractionationProfile: newAthleteStartClean ? 'BALANCED_PARETO' : fractionationProfile
+    };
+    const nextDb = [newRecord, ...athletesDatabase];
+    setAthletesDatabase(nextDb);
+    safeSetItem('hyrox_athletes_database_v1', JSON.stringify(nextDb));
+    setNewAthleteName('');
+    setCompareIdB(activeAthleteId);
+    setCompareIdA(newId);
+    // Ativa o novo aluno imediatamente
+    setActiveAthleteId(newId);
+    setDivisionKey(newRecord.divisionKey);
+    setAthleteWeight(newRecord.athleteWeight);
+    setGoalPace(newRecord.goalPace);
+    setRunningZonesKmh(newRecord.runningZonesKmh);
+    setCompletedDays(newRecord.completedDays);
+    setDayLogs(newRecord.dayLogs);
+    setOneRMs(newRecord.oneRMs);
+    setRoxzoneTargetSec(newRecord.roxzoneTargetSec);
+    setFractionationProfile(newRecord.fractionationProfile);
+    setDbBannerMsg(`Aluno/Atleta "${cleanName}" guardado no Banco de Dados e ativado!`);
+    setTimeout(() => setDbBannerMsg(''), 4500);
+  };
+
+  const handleSaveHistoricalSnapshot = () => {
+    const now = new Date();
+    const dateTag = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const customTag = String(snapshotCustomLabel || '').trim() || `Snapshot Dia ${selectedDayNum} (${dateTag})`;
+    const snapId = `snap-${Date.now()}`;
+    const snapRecord = {
+      id: snapId,
+      name: `${activeAthleteRecord.name} • [${customTag}]`,
+      roleOrCategory: `Snapshot Histórico • ${DIVISIONS[divisionKey]?.name || divisionKey}`,
+      coachNotes: `Fotografia longitudinal guardada em ${dateTag} com ${Object.values(completedDays).filter(Boolean).length}/26 dias concluídos.`,
+      recordType: 'SNAPSHOT',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      divisionKey,
+      athleteWeight,
+      goalPace,
+      runningZonesKmh: { ...runningZonesKmh },
+      completedDays: { ...completedDays },
+      dayLogs: JSON.parse(JSON.stringify(dayLogs || {})),
+      oneRMs: { ...oneRMs },
+      customPcts: { ...customPcts },
+      roxzoneTargetSec,
+      fractionationProfile
+    };
+    const nextDb = [snapRecord, ...athletesDatabase];
+    setAthletesDatabase(nextDb);
+    safeSetItem('hyrox_athletes_database_v1', JSON.stringify(nextDb));
+    setSnapshotCustomLabel('');
+    setCompareIdA(activeAthleteId);
+    setCompareIdB(snapId);
+    setDbBannerMsg(`Snapshot "${snapRecord.name}" guardado no Banco de Dados e selecionado como Perfil B na comparação!`);
+    setTimeout(() => setDbBannerMsg(''), 4500);
+  };
+
+  const handleDeleteAthleteRecord = (targetId) => {
+    if (athletesDatabase.length <= 1) {
+      setDbBannerMsg('O Banco de Dados deve manter pelo menos 1 perfil ativo.');
+      setTimeout(() => setDbBannerMsg(''), 3500);
+      return;
+    }
+    const target = athletesDatabase.find((a) => a.id === targetId);
+    const nextDb = athletesDatabase.filter((a) => a.id !== targetId);
+    setAthletesDatabase(nextDb);
+    safeSetItem('hyrox_athletes_database_v1', JSON.stringify(nextDb));
+    if (targetId === activeAthleteId && nextDb[0]) {
+      handleSelectActiveAthlete(nextDb[0].id);
+    }
+    if (targetId === compareIdA && nextDb[0]) {
+      setCompareIdA(nextDb[0].id);
+    }
+    if (targetId === compareIdB && nextDb[0]) {
+      setCompareIdB((nextDb[1] || nextDb[0]).id);
+    }
+    setDbBannerMsg(`Registo "${target ? target.name : targetId}" removido do Banco de Dados.`);
+    setTimeout(() => setDbBannerMsg(''), 3500);
+  };
+
   const sanitizeSyncCode = (raw) => {
     const cleaned = String(raw || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40);
     return cleaned.length >= 3 ? cleaned : 'hyrox-atleta-26d';
@@ -1323,6 +1760,8 @@ function App() {
       fractionationProfile: ['SAFE_80_20', 'BALANCED_PARETO', 'ELITE_DENSITY'].includes(fractionationProfile)
         ? fractionationProfile
         : 'BALANCED_PARETO',
+      activeAthleteId: activeAthleteId || 'atleta-principal',
+      athletesDatabase: Array.isArray(athletesDatabase) ? athletesDatabase : [],
       deviceLabel: (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'HYROX PWA').slice(0, 75)
     };
   };
@@ -1330,6 +1769,14 @@ function App() {
   const applyAthleteSyncSnapshot = (snapshot) => {
     if (!snapshot || Number(snapshot.schemaVersion) !== 1) {
       throw new Error('Formato de snapshot inválido (schemaVersion !== 1).');
+    }
+    if (Array.isArray(snapshot.athletesDatabase) && snapshot.athletesDatabase.length > 0) {
+      setAthletesDatabase(snapshot.athletesDatabase);
+      safeSetItem('hyrox_athletes_database_v1', JSON.stringify(snapshot.athletesDatabase));
+    }
+    if (typeof snapshot.activeAthleteId === 'string' && snapshot.activeAthleteId) {
+      setActiveAthleteId(snapshot.activeAthleteId);
+      safeSetItem('hyrox_active_athlete_id', snapshot.activeAthleteId);
     }
     if (snapshot.selectedDayNum >= 1 && snapshot.selectedDayNum <= 26) {
       setSelectedDayNum(Number(snapshot.selectedDayNum));
@@ -2624,7 +3071,9 @@ function App() {
   }, [athleteWeight, currentWorkout]);
 
   return (
-    React.createElement("div", { "className": "min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 md:pb-16" }, React.createElement("header", { "className": "sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl" }, React.createElement("div", { "className": "max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3" }, React.createElement("div", { "className": "flex items-center justify-between" }, React.createElement("div", { "className": "flex items-center gap-3" }, React.createElement("div", { "className": "w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl tracking-tighter shadow-lg shadow-yellow-400/20" }, "HX"), React.createElement("div", null, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement("h1", { "className": "text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase" }, "HYROX ", React.createElement("span", { "className": "text-yellow-400" }, "Periodização")), React.createElement("span", { "className": "hidden sm:inline-block text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded-full border border-slate-700" }, "10 Nov → 05 Dez")), React.createElement("p", { "className": "text-xs text-slate-400" }, "Arquitetura Endurance-Led, Strength-Protected • 6x/Semana"))), React.createElement("div", { "className": "lg:hidden text-right" }, React.createElement("span", { "className": "text-xs text-slate-400 block" }, "Concluído"), React.createElement("span", { "className": "text-sm font-bold text-yellow-400" }, stats.doneCount, "/", stats.totalDays, " dias (", stats.progressPct, "%)"))), React.createElement("div", { "className": "flex flex-wrap items-center gap-2 sm:gap-3 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 text-xs" }, React.createElement("div", { "className": "flex items-center gap-1.5" }, React.createElement(Trophy, { "className": "w-4 h-4 text-yellow-400 shrink-0" }), React.createElement("span", { "className": "text-slate-400 hidden sm:inline" }, "Divisão:"), React.createElement("select", { "value": divisionKey, "onChange": (e) => setDivisionKey(e.target.value), "className": "bg-slate-800 text-white font-semibold rounded-lg px-2 py-1 border border-slate-700 focus:outline-none focus:border-yellow-400" }, Object.values(DIVISIONS).map((div) => (
+    React.createElement("div", { "className": "min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 md:pb-16" }, React.createElement("header", { "className": "sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl" }, React.createElement("div", { "className": "max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3" }, React.createElement("div", { "className": "flex items-center justify-between" }, React.createElement("div", { "className": "flex items-center gap-3" }, React.createElement("div", { "className": "w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl tracking-tighter shadow-lg shadow-yellow-400/20" }, "HX"), React.createElement("div", null, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement("h1", { "className": "text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase" }, "HYROX ", React.createElement("span", { "className": "text-yellow-400" }, "Periodização")), React.createElement("span", { "className": "hidden sm:inline-block text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded-full border border-slate-700" }, "10 Nov → 05 Dez")), React.createElement("p", { "className": "text-xs text-slate-400" }, "Arquitetura Endurance-Led, Strength-Protected • 6x/Semana"))), React.createElement("div", { "className": "lg:hidden text-right" }, React.createElement("span", { "className": "text-xs text-slate-400 block" }, "Concluído"), React.createElement("span", { "className": "text-sm font-bold text-yellow-400" }, stats.doneCount, "/", stats.totalDays, " dias (", stats.progressPct, "%)"))), React.createElement("div", { "className": "flex flex-wrap items-center gap-2 sm:gap-3 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 text-xs" }, React.createElement("div", { "className": "flex items-center gap-1.5" }, React.createElement(Users, { "className": "w-4 h-4 text-purple-400 shrink-0" }), React.createElement("span", { "className": "text-slate-400 hidden sm:inline" }, "Aluno/Atleta:"), React.createElement("select", { "value": activeAthleteId, "onChange": (e) => handleSelectActiveAthlete(e.target.value), "className": "bg-slate-800 text-purple-300 font-bold rounded-lg px-2 py-1 border border-purple-500/40 focus:outline-none focus:border-purple-400 max-w-[180px] truncate", "title": "Selecionar Aluno ou Atleta guardado no Banco de Dados" }, athletesDatabase.map((rec) => (
+                  React.createElement("option", { "key": rec.id, "value": rec.id }, rec.name, " (", rec.goalPace, "/km • ", rec.athleteWeight, "kg)")
+                ))), React.createElement("button", { "onClick": () => setActiveTab('DATABASE'), "className": "px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 font-bold", "title": "Abrir Banco de Dados de Alunos & Comparador" }, "+ / Comparar")), React.createElement("div", { "className": "h-4 w-px bg-slate-800 hidden sm:block" }), React.createElement("div", { "className": "flex items-center gap-1.5" }, React.createElement(Trophy, { "className": "w-4 h-4 text-yellow-400 shrink-0" }), React.createElement("span", { "className": "text-slate-400 hidden sm:inline" }, "Divisão:"), React.createElement("select", { "value": divisionKey, "onChange": (e) => setDivisionKey(e.target.value), "className": "bg-slate-800 text-white font-semibold rounded-lg px-2 py-1 border border-slate-700 focus:outline-none focus:border-yellow-400" }, Object.values(DIVISIONS).map((div) => (
                   React.createElement("option", { "key": div.id, "value": div.id }, div.name)
                 )))), React.createElement("div", { "className": "h-4 w-px bg-slate-800 hidden sm:block" }), React.createElement("div", { "className": "flex items-center gap-1.5" }, React.createElement(Timer, { "className": "w-4 h-4 text-cyan-400 shrink-0" }), React.createElement("span", { "className": "text-slate-400" }, "Pace GRP (Z3):"), React.createElement("input", { "type": "text", "value": goalPace, "onChange": (e) => handleGoalPaceChange(e.target.value), "placeholder": "04:45", "className": "w-15 bg-slate-800 text-white font-mono font-bold text-center rounded-lg px-1.5 py-1 border border-slate-700 focus:outline-none focus:border-cyan-400" }), React.createElement("span", { "className": "text-slate-500" }, "/km"), React.createElement("span", { "className": "text-slate-600" }, "•"), React.createElement("input", { "type": "number", "step": "0.1", "min": "4", "max": "25", "value": runningZonesKmh.Z3, "onChange": (e) => handleGoalSpeedKmhChange(e.target.value), "className": "w-14 bg-slate-800 text-yellow-400 font-mono font-bold text-center rounded-lg px-1 py-1 border border-slate-700 focus:outline-none focus:border-yellow-400", "title": "Velocidade Alvo da Zona 3 (GRP) em km/h" }), React.createElement("span", { "className": "text-slate-500" }, "km/h")), React.createElement("div", { "className": "h-4 w-px bg-slate-800 hidden sm:block" }), React.createElement("div", { "className": "flex items-center gap-1.5" }, React.createElement(Scale, { "className": "w-4 h-4 text-emerald-400 shrink-0" }), React.createElement("span", { "className": "text-slate-400" }, "Peso:"), React.createElement("input", { "type": "number", "value": athleteWeight, "onChange": (e) => setAthleteWeight(parseFloat(e.target.value) || 70), "className": "w-14 bg-slate-800 text-white font-mono font-bold text-center rounded-lg px-1.5 py-1 border border-slate-700 focus:outline-none focus:border-emerald-400" }), React.createElement("span", { "className": "text-slate-500" }, "kg")), React.createElement("div", { "className": "h-4 w-px bg-slate-800 hidden sm:block" }), React.createElement("button", { "onClick": () => setSyncModalOpen(true), "className": `flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold border transition-all ${
                 syncStatus === 'SYNCED'
@@ -2634,6 +3083,7 @@ function App() {
                   : 'bg-yellow-400/15 text-yellow-300 border-yellow-400/40 hover:bg-yellow-400/25'
               }`, "title": "Sincronizar entre Web (PC) e Telemóvel (PWA / Cloud / JSON)" }, React.createElement(Cloud, { "className": "w-3.5 h-3.5 shrink-0" }), React.createElement("span", null, "Web & Mobile Sync")))), React.createElement("div", { "className": "max-w-7xl mx-auto px-4 flex overflow-x-auto no-scrollbar border-t border-slate-800/60" }, [
             { id: 'TODAY', label: 'Treino do Dia', icon: Flame },
+            { id: 'DATABASE', label: `Banco de Dados & Comparar (${athletesDatabase.length})`, icon: Database },
             { id: 'LOAD', label: 'Analytics & Gráficos (7)', icon: BarChart3 },
             { id: 'STRENGTH_RM', label: 'Meus 1RMs (Força)', icon: Dumbbell },
             { id: 'CALENDAR', label: 'Calendário 26 Dias', icon: Calendar },
@@ -3296,8 +3746,129 @@ function App() {
                 )))))
         ), activeTab === 'NUTRITION' && (
           React.createElement("div", { "className": "space-y-6" }, React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl" }, React.createElement("div", { "className": "flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800" }, React.createElement("div", null, React.createElement("h3", { "className": "text-lg font-black text-white uppercase flex items-center gap-2" }, React.createElement(Utensils, { "className": "w-5 h-5 text-emerald-400" }), "Calculadora de Periodização Nutricional (26 Dias)"), React.createElement("p", { "className": "text-xs text-slate-400 mt-0.5" }, "Alimente-se com a precisão energética de um corredor de fundo e recupere com o aporte proteico de um atleta de força.")), React.createElement("div", { "className": "flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800" }, React.createElement("span", { "className": "text-xs text-slate-400" }, "Seu Peso Corporal:"), React.createElement("input", { "type": "number", "value": athleteWeight, "onChange": (e) => setAthleteWeight(parseFloat(e.target.value) || 70), "className": "w-16 bg-slate-800 text-white font-mono font-bold text-center rounded px-2 py-1" }), React.createElement("span", { "className": "text-xs text-slate-400" }, "kg"))), React.createElement("div", { "className": "grid grid-cols-1 md:grid-cols-2 gap-4 mt-5" }, React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4" }, React.createElement("span", { "className": "text-xs font-bold uppercase text-amber-400 block mb-1" }, "1. Dias de Compromised Running, Intervalos e Simulação"), React.createElement("div", { "className": "text-2xl font-mono font-black text-white mb-2" }, Math.round(athleteWeight * 5), "g a ", Math.round(athleteWeight * 7), "g ", React.createElement("span", { "className": "text-xs font-sans font-normal text-slate-400" }, "Carboidratos/dia (5-7 g/kg)")), React.createElement("p", { "className": "text-xs text-slate-400 leading-relaxed" }, "Proteína: ", React.createElement("strong", null, Math.round(athleteWeight * 1.6), "g a ", Math.round(athleteWeight * 2.2), "g/dia"), " (fracionada em 4 refeições de 25-40g). Lípidos: 20-30% das calorias totais.")), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4" }, React.createElement("span", { "className": "text-xs font-bold uppercase text-emerald-400 block mb-1" }, "2. Dias de Base Aeróbica (Zona 2) e Descanso"), React.createElement("div", { "className": "text-2xl font-mono font-black text-white mb-2" }, Math.round(athleteWeight * 4), "g a ", Math.round(athleteWeight * 5), "g ", React.createElement("span", { "className": "text-xs font-sans font-normal text-slate-400" }, "Carboidratos/dia (4-5 g/kg)")), React.createElement("p", { "className": "text-xs text-slate-400 leading-relaxed" }, "Proibido fazer restrição calórica! As cargas do HYROX são absolutas e um défice energético degrada a força nos trenós e a imunidade.")), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4" }, React.createElement("span", { "className": "text-xs font-bold uppercase text-cyan-400 block mb-1" }, "3. Janela Peri-Treino (Sessões > 60 minutos)"), React.createElement("ul", { "className": "text-xs text-slate-300 space-y-1.5 mt-2" }, React.createElement("li", null, "• ", React.createElement("strong", null, "Pré-Treino (2-3h antes):"), " ", Math.round(athleteWeight * 1.5), "g a ", Math.round(athleteWeight * 2), "g carbo baixo/médio IG (aveia, banana, mel)."), React.createElement("li", null, "• ", React.createElement("strong", null, "Intra-Treino (Sábados):"), " 30g a 45g/hora (1 a 2 géis isotónicos + sódio/potássio)."), React.createElement("li", null, "• ", React.createElement("strong", null, "Pós-Treino (<45 min):"), " 30g Whey + ", Math.round(athleteWeight * 1.0), "g hidratos de carbono rápidos."))), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4" }, React.createElement("span", { "className": "text-xs font-bold uppercase text-yellow-400 block mb-1" }, "4. Últimas 48h (03/12 e 04/12) & Dia do Simulado (05/12)"), React.createElement("ul", { "className": "text-xs text-slate-300 space-y-1.5 mt-2" }, React.createElement("li", null, "• ", React.createElement("strong", null, "Carb-Loading (03 e 04/12):"), " ", Math.round(athleteWeight * 6), "g a ", Math.round(athleteWeight * 8), "g/dia (6-8 g/kg) de arroz branco, massa e fruta, cortando fibras insolúveis (brócolos, leguminosas) e gorduras."), React.createElement("li", null, "• ", React.createElement("strong", null, "Refeição Pré-Prova (2,5 a 3h antes):"), " ", Math.round(athleteWeight * 1.5), "g de fácil digestão (pão branco/aveia com mel)."), React.createElement("li", null, "• ", React.createElement("strong", null, "Durante o Simulado:"), " 1 gel energético aos 35-40 min (transição para o Rowing)."))))))
-        )), React.createElement("nav", { "className": "md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl" }, React.createElement("div", { "className": "grid grid-cols-6" }, [
+        ), activeTab === 'DATABASE' && (() => {
+          const recA = athletesDatabase.find((r) => r.id === compareIdA) || athletesDatabase[0];
+          const recB = athletesDatabase.find((r) => r.id === compareIdB) || athletesDatabase[1] || athletesDatabase[0];
+          const metricsA = computeRecordSummaryMetrics(recA);
+          const metricsB = computeRecordSummaryMetrics(recB);
+          const zonesA = (recA && recA.runningZonesKmh) || buildDefaultRunningZonesKmh(recA ? recA.goalPace : '04:45');
+          const zonesB = (recB && recB.runningZonesKmh) || buildDefaultRunningZonesKmh(recB ? recB.goalPace : '04:45');
+          const rmsA = (recA && recA.oneRMs) || {};
+          const rmsB = (recB && recB.oneRMs) || {};
+          const weightA = Math.max(35, parseFloat(recA && recA.athleteWeight) || 75);
+          const weightB = Math.max(35, parseFloat(recB && recB.athleteWeight) || 75);
+
+          // Geometria do Gráfico de Radar Duplo Sobreposto (5 Capacidades)
+          const rCx = 160;
+          const rCy = 150;
+          const rMax = 96;
+          const radarAxesMeta = [
+            { id: 'strength', label: 'Força (1RM)', scoreA: metricsA.radar.strength, scoreB: metricsB.radar.strength },
+            { id: 'endurance', label: 'Resistência', scoreA: metricsA.radar.endurance, scoreB: metricsB.radar.endurance },
+            { id: 'mobility', label: 'Mobilidade', scoreA: metricsA.radar.mobility, scoreB: metricsB.radar.mobility },
+            { id: 'power', label: 'Potência', scoreA: metricsA.radar.power, scoreB: metricsB.radar.power },
+            { id: 'speed', label: 'Velocidade', scoreA: metricsA.radar.speed, scoreB: metricsB.radar.speed }
+          ];
+          const buildPolyPoints = (key) => {
+            return radarAxesMeta
+              .map((ax, idx) => {
+                const angle = -Math.PI / 2 + (idx * 2 * Math.PI) / 5;
+                const val = Math.max(10, Math.min(100, Number(ax[key]) || 50));
+                const r = (val / 100) * rMax;
+                return `${(rCx + r * Math.cos(angle)).toFixed(1)},${(rCy + r * Math.sin(angle)).toFixed(1)}`;
+              })
+              .join(' ');
+          };
+
+          return (
+            React.createElement("div", { "className": "space-y-6" }, dbBannerMsg && (
+                React.createElement("div", { "className": "bg-emerald-500/20 border border-emerald-500/50 rounded-xl p-3.5 flex items-center justify-between text-xs text-emerald-200 font-bold shadow-lg" }, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement(CheckCircle2, { "className": "w-4 h-4 text-emerald-400 shrink-0" }), React.createElement("span", null, dbBannerMsg)), React.createElement("button", { "onClick": () => setDbBannerMsg(''), "className": "text-emerald-300 hover:text-white px-2 py-0.5 rounded bg-emerald-950/60" }, "Fechar"))
+              ), React.createElement("div", { "className": "grid grid-cols-1 lg:grid-cols-12 gap-5" }, React.createElement("div", { "className": "lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4" }, React.createElement("div", { "className": "flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3" }, React.createElement("div", null, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement(Database, { "className": "w-5 h-5 text-purple-400" }), React.createElement("h3", { "className": "text-base sm:text-lg font-black text-white uppercase" }, "Aluno / Atleta Ativo (Auto-Save Ativo)")), React.createElement("p", { "className": "text-xs text-slate-400 mt-0.5" }, "Todas as alterações de Zonas de Corrida (km/h), 1RMs, Peso e Treinos Confirmados ficam guardadas automaticamente neste registo.")), React.createElement("span", { "className": "text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 self-start" }, "● Guardado no Banco (", athletesDatabase.length, " registos)")), React.createElement("div", { "className": "grid grid-cols-1 sm:grid-cols-2 gap-3" }, React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Nome do Aluno / Atleta Ativo"), React.createElement("input", { "type": "text", "value": activeAthleteRecord.name || '', "onChange": (e) => handleUpdateActiveAthleteMeta('name', e.target.value), "className": "w-full bg-slate-950 text-white font-bold text-sm rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-purple-400", "placeholder": "Ex: João Silva - Aluno HYROX" })), React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Categoria / Turma / Objetivo"), React.createElement("input", { "type": "text", "value": activeAthleteRecord.roleOrCategory || '', "onChange": (e) => handleUpdateActiveAthleteMeta('roleOrCategory', e.target.value), "className": "w-full bg-slate-950 text-slate-200 font-semibold text-sm rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-purple-400", "placeholder": "Ex: Aluno Personal • Sub-70 min" }))), React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Observações Técnicas do Treinador / Histórico Clínico e Físico"), React.createElement("input", { "type": "text", "value": activeAthleteRecord.coachNotes || '', "onChange": (e) => handleUpdateActiveAthleteMeta('coachNotes', e.target.value), "className": "w-full bg-slate-950 text-slate-300 text-xs rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-purple-400", "placeholder": "Anote pontos fortes, limitações articulares, meta de pace ou evolução..." })), React.createElement("div", { "className": "bg-slate-950/90 border border-purple-500/30 rounded-xl p-3.5 space-y-2.5" }, React.createElement("div", { "className": "flex items-center justify-between" }, React.createElement("span", { "className": "text-xs font-black uppercase text-purple-300 flex items-center gap-1.5" }, React.createElement(Copy, { "className": "w-4 h-4 text-purple-400" }), "Guardar Fotografia Histórica (Snapshot para Comparar Antes vs. Depois)")), React.createElement("p", { "className": "text-[11px] text-slate-400" }, "Congele uma cópia exata do estado atual deste aluno (ex: ", React.createElement("em", null, "\"Avaliação Inicial Semana 1\""), ") para comparar a evolução futura dele próprio lado a lado."), React.createElement("div", { "className": "flex flex-col sm:flex-row gap-2" }, React.createElement("input", { "type": "text", "value": snapshotCustomLabel, "onChange": (e) => setSnapshotCustomLabel(e.target.value), "placeholder": `Ex: Avaliação Semana 1 - Dia ${selectedDayNum}`, "className": "flex-1 bg-slate-900 text-white text-xs rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:border-purple-400" }), React.createElement("button", { "onClick": handleSaveHistoricalSnapshot, "className": "px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 text-slate-950 font-black text-xs uppercase tracking-wide transition-all shrink-0 flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/20" }, React.createElement(Copy, { "className": "w-3.5 h-3.5" }), "Guardar Snapshot Histórico")))), React.createElement("div", { "className": "lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3.5" }, React.createElement("div", { "className": "border-b border-slate-800 pb-3" }, React.createElement("h3", { "className": "text-base sm:text-lg font-black text-white uppercase flex items-center gap-2" }, React.createElement(Plus, { "className": "w-5 h-5 text-yellow-400" }), "Cadastrar Novo Aluno / Atleta"), React.createElement("p", { "className": "text-xs text-slate-400 mt-0.5" }, "Crie uma ficha individualizada para cada aluno ou colega de equipa e alterne entre eles com 1 clique.")), React.createElement("div", { "className": "space-y-2.5 text-xs" }, React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Nome Completo / Identificação *"), React.createElement("input", { "type": "text", "value": newAthleteName, "onChange": (e) => setNewAthleteName(e.target.value), "placeholder": "Ex: Maria Oliveira (Women Open)", "className": "w-full bg-slate-950 text-white font-bold rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-yellow-400" })), React.createElement("div", { "className": "grid grid-cols-2 gap-2.5" }, React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Divisão Oficial"), React.createElement("select", { "value": newAthleteDivision, "onChange": (e) => setNewAthleteDivision(e.target.value), "className": "w-full bg-slate-950 text-white font-semibold rounded-xl px-2.5 py-2 border border-slate-700 focus:outline-none focus:border-yellow-400" }, Object.values(DIVISIONS).map((d) => (
+                            React.createElement("option", { "key": d.id, "value": d.id }, d.name)
+                          )))), React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Categoria / Grupo"), React.createElement("input", { "type": "text", "value": newAthleteRole, "onChange": (e) => setNewAthleteRole(e.target.value), "placeholder": "Aluno HYROX", "className": "w-full bg-slate-950 text-slate-200 rounded-xl px-2.5 py-2 border border-slate-700 focus:outline-none focus:border-yellow-400" }))), React.createElement("div", { "className": "grid grid-cols-2 gap-2.5" }, React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Peso Corporal (kg)"), React.createElement("input", { "type": "number", "min": "35", "max": "200", "value": newAthleteWeight, "onChange": (e) => setNewAthleteWeight(parseFloat(e.target.value) || 70), "className": "w-full bg-slate-950 text-emerald-400 font-mono font-bold rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-emerald-400" })), React.createElement("div", null, React.createElement("label", { "className": "text-[11px] uppercase font-bold text-slate-400 block mb-1" }, "Pace GRP Z3 (min/km)"), React.createElement("input", { "type": "text", "value": newAthletePace, "onChange": (e) => setNewAthletePace(e.target.value), "placeholder": "04:45", "className": "w-full bg-slate-950 text-cyan-400 font-mono font-bold rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-cyan-400" }))), React.createElement("div", { "className": "flex items-center justify-between bg-slate-950 px-3 py-2 rounded-xl border border-slate-800" }, React.createElement("span", { "className": "text-[11px] text-slate-300" }, "Modo de Inicialização da Planilha:"), React.createElement("button", { "type": "button", "onClick": () => setNewAthleteStartClean(!newAthleteStartClean), "className": `px-2.5 py-1 rounded-lg font-bold text-[11px] border ${
+                          newAthleteStartClean
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        }` }, newAthleteStartClean ? 'Ficha Limpa (0/26 dias)' : 'Clonar Cargas Atuais')), React.createElement("button", { "onClick": handleCreateNewAthlete, "className": "w-full py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black uppercase tracking-wide text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/20" }, React.createElement(Plus, { "className": "w-4 h-4" }), "Salvar Novo Aluno / Atleta no Banco de Dados")))), React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4" }, React.createElement("div", { "className": "flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3" }, React.createElement("div", null, React.createElement("h3", { "className": "text-base sm:text-lg font-black text-white uppercase flex items-center gap-2" }, React.createElement(Users, { "className": "w-5 h-5 text-cyan-400" }), "Registos Guardados no Banco de Dados (", athletesDatabase.length, ")"), React.createElement("p", { "className": "text-xs text-slate-400 mt-0.5" }, "Selecione qualquer aluno/atleta para abrir a periodização dele ou defina-o como ", React.createElement("strong", null, "Perfil A"), " / ", React.createElement("strong", null, "Perfil B"), " para comparar lado a lado.")), React.createElement("div", { "className": "flex flex-wrap items-center gap-2" }, React.createElement("button", { "onClick": pushToCloudFirestore, "className": "px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5" }, React.createElement(Cloud, { "className": "w-3.5 h-3.5" }), "Guardar Todo o Banco na Nuvem (Firestore)"), React.createElement("button", { "onClick": handleExportBackupJson, "className": "px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5" }, React.createElement(Download, { "className": "w-3.5 h-3.5 text-emerald-400" }), "Exportar Banco (.JSON)"))), React.createElement("div", { "className": "overflow-x-auto" }, React.createElement("table", { "className": "w-full text-left border-collapse text-xs" }, React.createElement("thead", null, React.createElement("tr", { "className": "border-b border-slate-800 text-[11px] uppercase text-slate-400 bg-slate-950/60" }, React.createElement("th", { "className": "py-2.5 px-3" }, "Aluno / Atleta / Snapshot"), React.createElement("th", { "className": "py-2.5 px-2" }, "Divisão & Peso"), React.createElement("th", { "className": "py-2.5 px-2" }, "Z3 GRP (Pace / km/h)"), React.createElement("th", { "className": "py-2.5 px-2" }, "Progresso & Distância"), React.createElement("th", { "className": "py-2.5 px-2" }, "Força Média 1RM"), React.createElement("th", { "className": "py-2.5 px-2" }, "Score 5D"), React.createElement("th", { "className": "py-2.5 px-3 text-right" }, "Ações & Comparação"))), React.createElement("tbody", { "className": "divide-y divide-slate-800/70" }, athletesDatabase.map((rec) => {
+                        const m = computeRecordSummaryMetrics(rec);
+                        const isCurrent = rec.id === activeAthleteId;
+                        const isCompA = rec.id === compareIdA;
+                        const isCompB = rec.id === compareIdB;
+                        return (
+                          React.createElement("tr", { "key": rec.id, "className": `transition-colors ${
+                              isCurrent ? 'bg-purple-500/10' : 'hover:bg-slate-800/40'
+                            }` }, React.createElement("td", { "className": "py-3 px-3" }, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement("span", { "className": "font-black text-white text-sm" }, rec.name), isCurrent && (
+                                  React.createElement("span", { "className": "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold" }, "ATIVO")
+                                ), rec.recordType === 'SNAPSHOT' && (
+                                  React.createElement("span", { "className": "text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold" }, "SNAPSHOT")
+                                )), React.createElement("span", { "className": "text-[11px] text-slate-400 block" }, rec.roleOrCategory || 'Atleta HYROX')), React.createElement("td", { "className": "py-3 px-2 font-mono" }, React.createElement("span", { "className": "text-slate-200 font-bold block" }, DIVISIONS[rec.divisionKey]?.name || rec.divisionKey), React.createElement("span", { "className": "text-emerald-400 text-[11px]" }, rec.athleteWeight, " kg")), React.createElement("td", { "className": "py-3 px-2 font-mono" }, React.createElement("span", { "className": "text-cyan-400 font-bold" }, rec.goalPace, "/km"), React.createElement("span", { "className": "text-yellow-400 block text-[11px]" }, m.grpSpeedKmh, " km/h")), React.createElement("td", { "className": "py-3 px-2 font-mono" }, React.createElement("span", { "className": "text-white font-bold" }, m.doneCount, "/26 dias (", m.progressPct, "%)"), React.createElement("span", { "className": "text-slate-400 block text-[11px]" }, m.confirmedDistanceKm, " km • ", m.loggedLoadUnits, " UA")), React.createElement("td", { "className": "py-3 px-2 font-mono" }, React.createElement("span", { "className": "text-amber-300 font-bold" }, m.avg1RMKg, " kg (média)"), React.createElement("span", { "className": "text-slate-400 block text-[11px]" }, "BS: ", m.relativeBackSquat, "x peso")), React.createElement("td", { "className": "py-3 px-2 font-mono" }, React.createElement("span", { "className": "px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-yellow-400 font-black" }, m.radar.overall, "/100")), React.createElement("td", { "className": "py-3 px-3 text-right" }, React.createElement("div", { "className": "flex flex-wrap items-center justify-end gap-1.5" }, !isCurrent && (
+                                  React.createElement("button", { "onClick": () => handleSelectActiveAthlete(rec.id), "className": "px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-[11px]" }, "Abrir Ficha")
+                                ), React.createElement("button", { "onClick": () => setCompareIdA(rec.id), "className": `px-2 py-1 rounded-lg font-bold text-[11px] border ${
+                                    isCompA
+                                      ? 'bg-yellow-400 text-slate-950 border-yellow-300'
+                                      : 'bg-slate-800 text-yellow-300 border-slate-700 hover:border-yellow-400/50'
+                                  }` }, "Perfil A"), React.createElement("button", { "onClick": () => setCompareIdB(rec.id), "className": `px-2 py-1 rounded-lg font-bold text-[11px] border ${
+                                    isCompB
+                                      ? 'bg-cyan-400 text-slate-950 border-cyan-300'
+                                      : 'bg-slate-800 text-cyan-300 border-slate-700 hover:border-cyan-400/50'
+                                  }` }, "Perfil B"), athletesDatabase.length > 1 && (
+                                  React.createElement("button", { "onClick": () => handleDeleteAthleteRecord(rec.id), "className": "p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30", "title": "Remover registo do Banco de Dados" }, React.createElement(Trash2, { "className": "w-3.5 h-3.5" }))
+                                ))))
+                        );
+                      }))))), React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-6" }, React.createElement("div", { "className": "flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4" }, React.createElement("div", null, React.createElement("span", { "className": "text-[11px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-yellow-400/15 text-yellow-300 border border-yellow-400/30" }, "Comparador Analítico de Performance (Aluno A vs. Aluno B / Antes vs. Depois)"), React.createElement("h3", { "className": "text-lg sm:text-xl font-black text-white uppercase mt-1.5" }, "Comparação Direta de Atletas, Zonas de Corrida (km/h) & Força (1RM)")), React.createElement("div", { "className": "flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs" }, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement("span", { "className": "w-3 h-3 rounded-full bg-yellow-400 shrink-0" }), React.createElement("span", { "className": "text-yellow-400 font-black uppercase" }, "Perfil A:"), React.createElement("select", { "value": recA ? recA.id : '', "onChange": (e) => setCompareIdA(e.target.value), "className": "bg-slate-900 text-white font-bold rounded-lg px-2.5 py-1.5 border border-yellow-400/40" }, athletesDatabase.map((r) => (
+                          React.createElement("option", { "key": r.id, "value": r.id }, r.name)
+                        )))), React.createElement("span", { "className": "text-slate-500 font-black text-center" }, "VS"), React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement("span", { "className": "w-3 h-3 rounded-full bg-cyan-400 shrink-0" }), React.createElement("span", { "className": "text-cyan-400 font-black uppercase" }, "Perfil B:"), React.createElement("select", { "value": recB ? recB.id : '', "onChange": (e) => setCompareIdB(e.target.value), "className": "bg-slate-900 text-white font-bold rounded-lg px-2.5 py-1.5 border border-cyan-400/40" }, athletesDatabase.map((r) => (
+                          React.createElement("option", { "key": r.id, "value": r.id }, r.name)
+                        )))))), React.createElement("div", { "className": "grid grid-cols-1 lg:grid-cols-12 gap-6 items-center" }, React.createElement("div", { "className": "lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col items-center" }, React.createElement("span", { "className": "text-xs font-black uppercase text-slate-300 mb-2" }, "Radar Sobreposto (5 Capacidades Físicas)"), React.createElement("svg", { "viewBox": "0 0 320 300", "className": "w-full max-w-[310px] h-auto overflow-visible" }, [25, 50, 75, 100].map((lvl) => {
+                        const pts = [0, 1, 2, 3, 4]
+                          .map((idx) => {
+                            const angle = -Math.PI / 2 + (idx * 2 * Math.PI) / 5;
+                            const r = (lvl / 100) * rMax;
+                            return `${(rCx + r * Math.cos(angle)).toFixed(1)},${(rCy + r * Math.sin(angle)).toFixed(1)}`;
+                          })
+                          .join(' ');
+                        return (
+                          React.createElement("polygon", { "key": lvl, "points": pts, "fill": "none", "stroke": "#1e293b", "strokeWidth": "1", "strokeDasharray": lvl === 100 ? 'none' : '3 3' })
+                        );
+                      }), radarAxesMeta.map((ax, idx) => {
+                        const angle = -Math.PI / 2 + (idx * 2 * Math.PI) / 5;
+                        const x2 = rCx + rMax * Math.cos(angle);
+                        const y2 = rCy + rMax * Math.sin(angle);
+                        const lx = rCx + (rMax + 26) * Math.cos(angle);
+                        const ly = rCy + (rMax + 20) * Math.sin(angle);
+                        return (
+                          React.createElement("g", { "key": ax.id }, React.createElement("line", { "x1": rCx, "y1": rCy, "x2": x2, "y2": y2, "stroke": "#334155", "strokeWidth": "1" }), React.createElement("text", { "x": lx, "y": ly, "textAnchor": "middle", "dominantBaseline": "middle", "className": "fill-slate-300 text-[10px] font-bold" }, ax.label))
+                        );
+                      }), React.createElement("polygon", { "points": buildPolyPoints('scoreB'), "fill": "rgba(34, 211, 238, 0.18)", "stroke": "#22d3ee", "strokeWidth": "2.5" }), React.createElement("polygon", { "points": buildPolyPoints('scoreA'), "fill": "rgba(250, 204, 21, 0.22)", "stroke": "#facc15", "strokeWidth": "2.5" })), React.createElement("div", { "className": "flex flex-wrap items-center justify-center gap-4 text-xs mt-2" }, React.createElement("span", { "className": "flex items-center gap-1.5 text-yellow-300 font-bold" }, React.createElement("span", { "className": "w-3 h-3 rounded-sm bg-yellow-400 inline-block" }), recA ? recA.name : 'Perfil A', " (", metricsA.radar.overall, " pts)"), React.createElement("span", { "className": "flex items-center gap-1.5 text-cyan-300 font-bold" }, React.createElement("span", { "className": "w-3 h-3 rounded-sm bg-cyan-400 inline-block" }), recB ? recB.name : 'Perfil B', " (", metricsB.radar.overall, " pts)"))), React.createElement("div", { "className": "lg:col-span-7 space-y-4" }, React.createElement("div", { "className": "grid grid-cols-1 sm:grid-cols-3 gap-3" }, React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-3" }, React.createElement("span", { "className": "text-[10px] uppercase text-slate-400 font-bold block" }, "Velocidade GRP (Z3)"), React.createElement("div", { "className": "flex items-baseline justify-between mt-1 font-mono" }, React.createElement("span", { "className": "text-sm font-black text-yellow-400" }, metricsA.grpSpeedKmh, " km/h (", metricsA.grpPaceStr, ")"), React.createElement("span", { "className": "text-xs text-slate-500" }, "vs"), React.createElement("span", { "className": "text-sm font-black text-cyan-400" }, metricsB.grpSpeedKmh, " km/h (", metricsB.grpPaceStr, ")"))), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-3" }, React.createElement("span", { "className": "text-[10px] uppercase text-slate-400 font-bold block" }, "Distância Real Confirmada"), React.createElement("div", { "className": "flex items-baseline justify-between mt-1 font-mono" }, React.createElement("span", { "className": "text-sm font-black text-yellow-400" }, metricsA.confirmedDistanceKm, " km (", metricsA.doneCount, "d)"), React.createElement("span", { "className": "text-xs text-slate-500" }, "vs"), React.createElement("span", { "className": "text-sm font-black text-cyan-400" }, metricsB.confirmedDistanceKm, " km (", metricsB.doneCount, "d)"))), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-3" }, React.createElement("span", { "className": "text-[10px] uppercase text-slate-400 font-bold block" }, "Carga Interna Confirmada"), React.createElement("div", { "className": "flex items-baseline justify-between mt-1 font-mono" }, React.createElement("span", { "className": "text-sm font-black text-yellow-400" }, metricsA.loggedLoadUnits, " UA"), React.createElement("span", { "className": "text-xs text-slate-500" }, "vs"), React.createElement("span", { "className": "text-sm font-black text-cyan-400" }, metricsB.loggedLoadUnits, " UA")))), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5" }, React.createElement("span", { "className": "text-xs font-black uppercase text-white block" }, "Diferencial nas 5 Capacidades Multidimensionais (Perfil A vs. Perfil B)"), radarAxesMeta.map((ax) => {
+                        const diff = ax.scoreA - ax.scoreB;
+                        return (
+                          React.createElement("div", { "key": ax.id, "className": "grid grid-cols-12 items-center gap-2 text-xs" }, React.createElement("span", { "className": "col-span-4 font-bold text-slate-300" }, ax.label), React.createElement("div", { "className": "col-span-5 flex items-center gap-1.5" }, React.createElement("div", { "className": "flex-1 h-2 bg-slate-800 rounded-full overflow-hidden flex" }, React.createElement("div", { "className": "bg-yellow-400 h-full", "style": { width: `${ax.scoreA}%` } })), React.createElement("div", { "className": "flex-1 h-2 bg-slate-800 rounded-full overflow-hidden flex" }, React.createElement("div", { "className": "bg-cyan-400 h-full", "style": { width: `${ax.scoreB}%` } }))), React.createElement("div", { "className": "col-span-3 text-right font-mono text-[11px]" }, React.createElement("span", { "className": "text-yellow-400 font-bold" }, ax.scoreA), React.createElement("span", { "className": "text-slate-500" }, " / "), React.createElement("span", { "className": "text-cyan-400 font-bold" }, ax.scoreB), React.createElement("span", { "className": `ml-1.5 font-black ${diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-rose-400' : 'text-slate-400'}` }, "(", diff > 0 ? `+${diff}` : diff, ")")))
+                        );
+                      })))), React.createElement("div", { "className": "grid grid-cols-1 lg:grid-cols-2 gap-6" }, React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3" }, React.createElement("h4", { "className": "text-xs sm:text-sm font-black uppercase text-cyan-300 flex items-center gap-2" }, React.createElement(Timer, { "className": "w-4 h-4 text-cyan-400" }), "Comparação das Zonas de Corrida Z1 a Z5 (km/h & Pace)"), React.createElement("div", { "className": "overflow-x-auto" }, React.createElement("table", { "className": "w-full text-left border-collapse text-xs" }, React.createElement("thead", null, React.createElement("tr", { "className": "border-b border-slate-800 text-[10px] uppercase text-slate-400" }, React.createElement("th", { "className": "py-2 px-2" }, "Zona Fisiológica"), React.createElement("th", { "className": "py-2 px-2 text-yellow-400" }, "Perfil A (km/h • /km)"), React.createElement("th", { "className": "py-2 px-2 text-cyan-400" }, "Perfil B (km/h • /km)"), React.createElement("th", { "className": "py-2 px-2 text-right" }, "Delta (Δ km/h)"))), React.createElement("tbody", { "className": "divide-y divide-slate-800/60 font-mono" }, Object.values(RUNNING_ZONES_META).map((z) => {
+                            const spdA = Number(zonesA[z.id]) || 11.0;
+                            const spdB = Number(zonesB[z.id]) || 11.0;
+                            const deltaSpd = Math.round((spdA - spdB) * 10) / 10;
+                            return (
+                              React.createElement("tr", { "key": z.id }, React.createElement("td", { "className": "py-2 px-2 font-sans" }, React.createElement("span", { "className": "font-bold text-white" }, z.id), React.createElement("span", { "className": "text-[10px] text-slate-400 block" }, z.shortLabel)), React.createElement("td", { "className": "py-2 px-2 text-yellow-300 font-bold" }, spdA.toFixed(1), " km/h ", React.createElement("span", { "className": "text-slate-400 font-normal" }, "(", kmhToPaceStr(spdA), ")")), React.createElement("td", { "className": "py-2 px-2 text-cyan-300 font-bold" }, spdB.toFixed(1), " km/h ", React.createElement("span", { "className": "text-slate-400 font-normal" }, "(", kmhToPaceStr(spdB), ")")), React.createElement("td", { "className": `py-2 px-2 text-right font-black ${
+                                  deltaSpd > 0 ? 'text-emerald-400' : deltaSpd < 0 ? 'text-rose-400' : 'text-slate-400'
+                                }` }, deltaSpd > 0 ? `+${deltaSpd.toFixed(1)}` : deltaSpd.toFixed(1), " km/h"))
+                            );
+                          }))))), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3" }, React.createElement("h4", { "className": "text-xs sm:text-sm font-black uppercase text-amber-300 flex items-center gap-2" }, React.createElement(Dumbbell, { "className": "w-4 h-4 text-amber-400" }), "Comparação de Força 1RM (Carga Absoluta & Relativa ao Peso)"), React.createElement("div", { "className": "overflow-x-auto" }, React.createElement("table", { "className": "w-full text-left border-collapse text-xs" }, React.createElement("thead", null, React.createElement("tr", { "className": "border-b border-slate-800 text-[10px] uppercase text-slate-400" }, React.createElement("th", { "className": "py-2 px-2" }, "Exercício Base"), React.createElement("th", { "className": "py-2 px-2 text-yellow-400" }, "Perfil A (1RM)"), React.createElement("th", { "className": "py-2 px-2 text-cyan-400" }, "Perfil B (1RM)"), React.createElement("th", { "className": "py-2 px-2 text-right" }, "Diferença (Δ kg)"))), React.createElement("tbody", { "className": "divide-y divide-slate-800/60 font-mono" }, Object.values(STRENGTH_EXERCISES).map((ex) => {
+                            const valA = Number(rmsA[ex.id]) || ex.default1RM;
+                            const valB = Number(rmsB[ex.id]) || ex.default1RM;
+                            const diffKg = Math.round((valA - valB) * 10) / 10;
+                            const relA = (valA / weightA).toFixed(2);
+                            const relB = (valB / weightB).toFixed(2);
+                            return (
+                              React.createElement("tr", { "key": ex.id }, React.createElement("td", { "className": "py-1.5 px-2 font-sans font-semibold text-slate-200" }, ex.name), React.createElement("td", { "className": "py-1.5 px-2 text-yellow-300 font-bold" }, valA, " kg ", React.createElement("span", { "className": "text-[10px] text-slate-400 font-normal" }, "(", relA, "x)")), React.createElement("td", { "className": "py-1.5 px-2 text-cyan-300 font-bold" }, valB, " kg ", React.createElement("span", { "className": "text-[10px] text-slate-400 font-normal" }, "(", relB, "x)")), React.createElement("td", { "className": `py-1.5 px-2 text-right font-black ${
+                                  diffKg > 0 ? 'text-emerald-400' : diffKg < 0 ? 'text-rose-400' : 'text-slate-400'
+                                }` }, diffKg > 0 ? `+${diffKg}` : diffKg, " kg"))
+                            );
+                          }))))))))
+          );
+        })()), React.createElement("nav", { "className": "md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl" }, React.createElement("div", { "className": "grid grid-cols-7" }, [
             { id: 'TODAY', label: 'Treino', icon: Flame },
+            { id: 'DATABASE', label: 'Alunos/DB', icon: Database },
             { id: 'LOAD', label: 'Analytics', icon: BarChart3 },
             { id: 'STRENGTH_RM', label: '1RMs', icon: Dumbbell },
             { id: 'CALENDAR', label: '26 Dias', icon: Calendar },

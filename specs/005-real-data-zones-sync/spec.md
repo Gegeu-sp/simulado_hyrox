@@ -78,3 +78,4 @@ Como utilizador, quero que qualquer dado inserido ou editado em qualquer aba (Pa
 - **SC-001**: Conversão exata e imediata (`< 16ms`) entre `Velocidade (km/h)` e `Pace (min/km)` tanto nas 5 Zonas Globais (`Z1–Z5`) quanto no registo diário de cada um dos 26 dias.
 - **SC-002**: 100% dos 7 gráficos da aba `Analytics & Gráficos (7)` respondem dinamicamente à confirmação/edição de qualquer treino, velocidade usada, duração, RPE ou 1RM, sem dados estáticos desconectados.
 - **SC-003**: Aplicação validada sem erros em Node.js V8, publicada em `https://hyrox-simulado-26d.web.app/` e sincronizada no GitHub `https://github.com/Gegeu-sp/simulado_hyrox.git`.
+
