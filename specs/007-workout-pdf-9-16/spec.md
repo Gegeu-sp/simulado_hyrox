@@ -53,10 +53,12 @@ Como utilizador em smartphone ou computador, preciso tanto de **geração direta
   3. **Diretriz Tática de Pareto 80/20 do Dia**: Pilar dominante (`80%` vs `20%`), foco tático e meta de transição *Roxzone*;
   4. **Prescrição Completa por Blocos**: Todos os blocos do treino do dia (`A`, `B`, `C`, etc.), incluindo as cargas exatas em `kg` calculadas a partir dos `1RMs` do aluno ativo e os pesos oficiais da divisão selecionada;
   5. **Protocolo Nutricional Diário & Assinatura Profissional**: Meta de hidratos de carbono (`g/dia`), proteína (`g/dia`), hidratação e rodapé profissional (*Argeu Rodrigues • Personal Trainer | CREF: 158814-G/SP*).
-- **FR-004**: O modal do Poster/PDF 9:16 DEVE oferecer três ações rápidas:
-  - **"⬇️ Baixar PDF 9:16 (.PDF)"**: Gera e descarrega imediatamente o ficheiro `.pdf` em formato 9:16;
-  - **"📲 Partilhar / Enviar no Telemóvel"**: Utiliza a API de partilha nativa (`navigator.share` com ficheiro `.pdf` ou resumo formatado para WhatsApp) para envio imediato ao aluno;
-  - **"🖨️ Imprimir / Guardar PDF Vetorial 9:16"**: Abre a folha de estilo `@page { size: 108mm 192mm; margin: 0 }` para exportação vetorial nativa do navegador.
+- **FR-005 (Controlo Estrito de Margens e Auto-Fit Tipográfico no PDF 9:16)**:
+  - Nenhum texto do PDF/Poster 9:16 pode ultrapassar as margens internas dos cartões (`padding >= 24px` em todas as caixas, largura útil máxima `940px` num canvas `1080×1920`);
+  - O subtítulo do cabeçalho não pode colidir com o emblema de status superior direito;
+  - O quadro `RITMO ALVO GRP (ZONA 3)` deve dimensionar automaticamente a fonte (`drawFittedText`) para manter `05:20/km • 11.3 km/h` 100% dentro das bordas;
+  - O título do Microciclo no banner amarelo e todos os cartões de KPI (incluindo o nome curto da zona `shortLabel` sem `undefined` e a descrição completa de volume em 2 linhas) devem respeitar rigorosamente a largura de cada caixa;
+  - Os blocos de exercícios (`1`, `2`, `3`, `4`...) devem calcular a altura e o tamanho de fonte de forma auto-adaptativa para que todos os blocos, prescrições `1RM` e pesos da divisão caibam integralmente dentro da página 9:16 sem cortes nem transbordo.
 
 ### Key Entities
 

@@ -916,6 +916,7 @@ const safeSetItem = (key, val) => {
 const RUNNING_ZONES_META = {
   Z1: {
     id: 'Z1',
+    short: 'Z1 • Regen.',
     shortLabel: 'Zona 1 (Regen.)',
     name: 'Z1 • Recuperação & Aquecimento',
     hrPct: '55–65% FCmáx',
@@ -926,6 +927,7 @@ const RUNNING_ZONES_META = {
   },
   Z2: {
     id: 'Z2',
+    short: 'Z2 • Aeróbica',
     shortLabel: 'Zona 2 (Base Aeróbica)',
     name: 'Z2 • Base Mitocondrial Nasal',
     hrPct: '65–75% FCmáx',
@@ -936,6 +938,7 @@ const RUNNING_ZONES_META = {
   },
   Z3: {
     id: 'Z3',
+    short: 'Z3 • GRP Prova',
     shortLabel: 'Zona 3 (Ritmo GRP)',
     name: 'Z3 • Goal Race Pace (Prova HYROX)',
     hrPct: '75–82% FCmáx',
@@ -946,6 +949,7 @@ const RUNNING_ZONES_META = {
   },
   Z4: {
     id: 'Z4',
+    short: 'Z4 • Limiar',
     shortLabel: 'Zona 4 (Limiar / Comp.)',
     name: 'Z4 • Limiar Anaeróbico & Compromised',
     hrPct: '82–89% FCmáx',
@@ -956,6 +960,7 @@ const RUNNING_ZONES_META = {
   },
   Z5: {
     id: 'Z5',
+    short: 'Z5 • VO2máx',
     shortLabel: 'Zona 5 (VO2máx)',
     name: 'Z5 • Potência Aeróbica / Intervalos',
     hrPct: '90–98% FCmáx',
@@ -1225,10 +1230,16 @@ const buildPdfBlobFromJpegDataUrl = (jpegDataUrl, imgWidth = 1080, imgHeight = 1
   return new Blob(chunks, { type: 'application/pdf' });
 };
 
-// Motor Gráfico Canvas HD 9:16 (1080x1920) para gerar o Flyer/PDF do Treino do Dia (Feature 007)
+// Motor Gráfico Canvas HD 9:16 (1080x1920) com Controlo Estrito de Margens e Auto-Fit Tipográfico (Feature 007)
 const renderWorkoutPoster9x16ToCanvas = (payload) => {
   const W = 1080;
   const H = 1920;
+  const M = 44; // Margem externa lateral fixa (esquerda = 44, direita = 1036)
+  const FULL_W = W - M * 2; // 992px de largura útil dos cartões
+  const PAD_X = 26; // Padding interno lateral mínimo dentro de cada cartão
+  const TEXT_X = M + PAD_X; // 70px
+  const MAX_TEXT_W = FULL_W - PAD_X * 2; // 940px de largura máxima segura de texto
+
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -1274,6 +1285,40 @@ const renderWorkoutPoster9x16ToCanvas = (payload) => {
     }
   };
 
+  // Garante que uma linha única NUNCA ultrapasse maxW (reduz a fonte até minPx e, se necessário, trunca com reticências)
+  const drawFittedText = (
+    text,
+    x,
+    y,
+    maxW,
+    basePx = 20,
+    minPx = 11,
+    weight = '800',
+    family = 'Inter, system-ui, sans-serif',
+    align = 'left'
+  ) => {
+    const clean = String(text !== undefined && text !== null ? text : '').trim();
+    if (!clean) return;
+    const prevAlign = ctx.textAlign;
+    ctx.textAlign = align;
+    let px = basePx;
+    ctx.font = `${weight} ${px}px ${family}`;
+    while (px > minPx && ctx.measureText(clean).width > maxW) {
+      px -= 0.5;
+      ctx.font = `${weight} ${px}px ${family}`;
+    }
+    let finalStr = clean;
+    if (ctx.measureText(finalStr).width > maxW) {
+      while (finalStr.length > 1 && ctx.measureText(`${finalStr}…`).width > maxW) {
+        finalStr = finalStr.slice(0, -1);
+      }
+      finalStr = `${finalStr.trim()}…`;
+    }
+    ctx.fillText(finalStr, x, y);
+    ctx.textAlign = prevAlign;
+  };
+
+  // Quebra texto em múltiplas linhas garantindo que nenhuma palavra ou linha ultrapasse maxWidth
   const wrapLines = (text, maxWidth, fontSpec) => {
     if (fontSpec) ctx.font = fontSpec;
     const rawLines = String(text || '').split(/\r?\n/);
@@ -1305,15 +1350,15 @@ const renderWorkoutPoster9x16ToCanvas = (payload) => {
   ctx.fillRect(0, 0, W, H);
 
   // Grelha Tática Subtil no Topo
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)';
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.045)';
   ctx.lineWidth = 1;
   for (let gx = 0; gx <= W; gx += 60) {
     ctx.beginPath();
     ctx.moveTo(gx, 0);
-    ctx.lineTo(gx, 420);
+    ctx.lineTo(gx, 410);
     ctx.stroke();
   }
-  for (let gy = 0; gy <= 420; gy += 60) {
+  for (let gy = 0; gy <= 410; gy += 60) {
     ctx.beginPath();
     ctx.moveTo(0, gy);
     ctx.lineTo(W, gy);
@@ -1324,74 +1369,72 @@ const renderWorkoutPoster9x16ToCanvas = (payload) => {
   ctx.fillStyle = '#facc15';
   ctx.fillRect(0, 0, W, 14);
 
-  // 2. Cabeçalho Institucional (Y = 38..145)
-  roundRect(42, 36, 86, 86, 20, '#facc15', null);
+  // 2. Cabeçalho Institucional (Y = 34..122) — Sem colisão com o badge direito
+  roundRect(M, 36, 82, 82, 20, '#facc15', null);
   ctx.fillStyle = '#020617';
-  ctx.font = '900 42px Inter, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('HX', 85, 94);
+  drawFittedText('HX', M + 41, 91, 72, 40, 28, '900', 'Inter, system-ui, sans-serif', 'center');
 
-  ctx.textAlign = 'left';
+  // Título e subtítulo limitados a maxW = 540px (terminam antes de x = 684; badge direito começa em x = 706)
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 34px Inter, system-ui, sans-serif';
-  ctx.fillText('HYROX PERIODIZAÇÃO', 148, 76);
+  drawFittedText('HYROX PERIODIZAÇÃO', 142, 74, 540, 33, 22, '900');
 
   ctx.fillStyle = '#facc15';
-  ctx.font = '800 20px Inter, system-ui, sans-serif';
-  ctx.fillText('FICHA OFICIAL DO TREINO DO DIA • FORMATO 9:16 MOBILE', 148, 108);
+  drawFittedText('FICHA OFICIAL DO TREINO DO DIA • FORMATO 9:16', 142, 105, 540, 17, 12, '800');
 
-  // Badge de Status no Canto Direito
-  const statusBg = isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(250, 204, 21, 0.16)';
+  // Badge de Status no Canto Direito (x = 706..1036, w = 330)
+  const statusBg = isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(250, 204, 21, 0.15)';
   const statusBorder = isCompleted ? '#10b981' : '#facc15';
   const statusText = isCompleted ? '✓ TREINO CONFIRMADO' : `DIA ${workout.dayNum} DE 26 • ${workout.date}`;
-  roundRect(720, 44, 318, 68, 16, statusBg, statusBorder, 2);
+  roundRect(706, 42, 330, 68, 16, statusBg, statusBorder, 2);
   ctx.fillStyle = isCompleted ? '#34d399' : '#fde047';
-  ctx.font = '900 20px Inter, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(statusText, 879, 85);
+  drawFittedText(statusText, 871, 83, 298, 19, 13, '900', 'Inter, system-ui, sans-serif', 'center');
 
-  // 3. Cartão do Aluno / Atleta Ativo (Y = 142..268)
-  roundRect(42, 142, W - 84, 122, 22, '#0f172a', '#1e293b', 2);
-  ctx.textAlign = 'left';
+  // 3. Cartão do Aluno / Atleta Ativo + Caixa GRP Z3 (Y = 134..256, h = 122)
+  roundRect(M, 134, FULL_W, 122, 22, '#0f172a', '#1e293b', 2);
+
+  // Coluna esquerda do cartão do aluno (x = 70..640, maxW = 568)
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 17px Inter, system-ui, sans-serif';
-  ctx.fillText('ALUNO / ATLETA:', 68, 178);
+  drawFittedText('ALUNO / ATLETA:', TEXT_X, 168, 568, 15, 12, '700');
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 28px Inter, system-ui, sans-serif';
-  ctx.fillText(String(athleteName || 'Atleta Principal').slice(0, 34), 68, 214);
+  drawFittedText(athleteName || 'Atleta Principal', TEXT_X, 204, 568, 27, 18, '900');
 
   ctx.fillStyle = '#c084fc';
-  ctx.font = '700 18px Inter, system-ui, sans-serif';
-  ctx.fillText(`${divisionName} • Peso: ${athleteWeight} kg • ${athleteRole}`, 68, 244);
+  drawFittedText(`${divisionName} • Peso: ${athleteWeight} kg • ${athleteRole}`, TEXT_X, 236, 568, 17, 12, '700');
 
-  // Caixa Direita dentro do Cartão do Atleta: Pace GRP & Velocidade Z3
+  // Caixa Direita dentro do Cartão do Atleta: Pace GRP & Velocidade Z3 (x = 656..1014, w = 358, h = 92)
   const z3Speed = runningZonesKmh.Z3 || paceSecToKmh(paceStrToSeconds(goalPace, 285));
-  roundRect(690, 158, 326, 90, 16, '#020617', 'rgba(34, 211, 238, 0.4)', 2);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 15px Inter, system-ui, sans-serif';
-  ctx.fillText('RITMO ALVO GRP (ZONA 3):', 712, 186);
-  ctx.fillStyle = '#22d3ee';
-  ctx.font = '900 28px monospace';
-  ctx.fillText(`${goalPace}/km • ${z3Speed} km/h`, 712, 228);
+  const grpBoxX = 656;
+  const grpBoxW = 358;
+  const grpCenterX = grpBoxX + grpBoxW / 2;
+  roundRect(grpBoxX, 149, grpBoxW, 92, 16, '#020617', 'rgba(34, 211, 238, 0.45)', 2);
 
-  // 4. Banner do Dia & Sessão Principal (Y = 282..424)
-  roundRect(42, 282, W - 84, 142, 24, '#111827', '#facc15', 2.5);
+  ctx.fillStyle = '#94a3b8';
+  drawFittedText('RITMO ALVO GRP (ZONA 3):', grpCenterX, 178, grpBoxW - 32, 14, 11, '700', 'Inter, system-ui, sans-serif', 'center');
+
+  ctx.fillStyle = '#22d3ee';
+  drawFittedText(`${goalPace}/km • ${z3Speed} km/h`, grpCenterX, 219, grpBoxW - 32, 24, 15, '900', 'monospace', 'center');
+
+  // 4. Banner do Dia & Sessão Principal (Y = 270..406, h = 136) — Com auto-fit para nunca sair da margem amarela
+  roundRect(M, 270, FULL_W, 136, 22, '#111827', '#facc15', 2.5);
+
   ctx.fillStyle = '#facc15';
-  ctx.font = '900 19px Inter, system-ui, sans-serif';
-  ctx.fillText(
-    `DIA ${workout.dayNum}/26 (${workout.date} • ${workout.weekday.toUpperCase()}) • ${microcycle.title.toUpperCase()}`,
-    68,
-    320
-  );
+  const bannerTopText = `DIA ${workout.dayNum}/26 (${workout.date} • ${String(workout.weekday || '').toUpperCase()}) • ${String(microcycle.title || '').toUpperCase()}`;
+  drawFittedText(bannerTopText, TEXT_X, 304, MAX_TEXT_W, 16.5, 11.5, '900');
 
   ctx.fillStyle = '#ffffff';
-  const titleLines = wrapLines(workout.type, W - 140, '900 31px Inter, system-ui, sans-serif');
-  titleLines.slice(0, 2).forEach((ln, idx) => {
-    ctx.fillText(ln, 68, 362 + idx * 36);
-  });
+  const titleLines = wrapLines(workout.type, MAX_TEXT_W, '900 28px Inter, system-ui, sans-serif');
+  if (titleLines.length === 1) {
+    drawFittedText(titleLines[0], TEXT_X, 356, MAX_TEXT_W, 29, 18, '900');
+    ctx.fillStyle = '#94a3b8';
+    drawFittedText(microcycle.focus || '', TEXT_X, 388, MAX_TEXT_W, 14.5, 11, '600');
+  } else {
+    titleLines.slice(0, 2).forEach((ln, idx) => {
+      drawFittedText(ln, TEXT_X, 344 + idx * 34, MAX_TEXT_W, 26, 17, '900');
+    });
+  }
 
-  // 5. Quatro Pílulas de Telemetria da Sessão (Y = 440..552)
+  // 5. Quatro Pílulas de Telemetria da Sessão (Y = 420..544, h = 124) — Subtítulo em 2 linhas sem cortes nem undefined
   const zoneMeta = RUNNING_ZONES_META[prescribedZoneKey] || RUNNING_ZONES_META.Z3;
   const zoneKmh = prescribedZoneKey !== 'REST'
     ? (runningZonesKmh[prescribedZoneKey] || z3Speed)
@@ -1399,188 +1442,258 @@ const renderWorkoutPoster9x16ToCanvas = (payload) => {
   const zonePace = kmhToPaceStr(zoneKmh);
   const usedKmh = currentLog.usedSpeedKmh || zoneKmh;
   const usedZone = currentLog.usedZone || (prescribedZoneKey === 'REST' ? 'Z1' : prescribedZoneKey);
+  const zoneShortName = zoneMeta.short || zoneMeta.shortLabel || prescribedZoneKey;
+  const plannedOrLoggedDist = currentLog.distanceKm !== undefined ? currentLog.distanceKm : getDayPlannedRunDistanceKm(workout);
+  const rpeVal = currentLog.rpe || (workout.loadIndex === 0 ? 6 : workout.loadIndex + 9);
+  const durVal = currentLog.duration || workout.durationMin;
 
   const kpiCards = [
     {
       label: 'DURAÇÃO & VOLUME',
-      val: `${currentLog.duration || workout.durationMin} min`,
-      sub: String(workout.volumeDesc || '').slice(0, 24),
+      val: `${durVal} min`,
+      sub: String(workout.volumeDesc || `${durVal} min sessão`),
       color: '#ffffff',
       border: '#334155'
     },
     {
       label: `ZONA PRESCRITA (${prescribedZoneKey})`,
       val: prescribedZoneKey === 'REST' ? 'Descanso Z1' : `${zoneKmh} km/h`,
-      sub: prescribedZoneKey === 'REST' ? 'Recuperação SNC' : `Pace: ${zonePace}/km (${zoneMeta.short})`,
+      sub: prescribedZoneKey === 'REST' ? 'Recuperação SNC' : `Pace: ${zonePace}/km (${zoneShortName})`,
       color: '#22d3ee',
       border: 'rgba(34, 211, 238, 0.45)'
     },
     {
       label: 'VELOCIDADE REAL / DIA',
       val: `${usedKmh} km/h (${usedZone})`,
-      sub: `Dist.: ${currentLog.distanceKm !== undefined ? currentLog.distanceKm : getDayPlannedRunDistanceKm(workout)} km • ${kmhToPaceStr(usedKmh)}/km`,
+      sub: `Dist: ${plannedOrLoggedDist} km • Pace ${kmhToPaceStr(usedKmh)}/km`,
       color: '#facc15',
       border: 'rgba(250, 204, 21, 0.45)'
     },
     {
       label: 'PSE BORG & STRESS',
-      val: `RPE ${currentLog.rpe || (workout.loadIndex === 0 ? 6 : workout.loadIndex + 9)}/20`,
-      sub: `Carga: ${Math.round((currentLog.rpe || (workout.loadIndex + 9)) * (currentLog.duration || workout.durationMin))} UA (${workout.loadIndex}/10)`,
+      val: `RPE ${rpeVal}/20`,
+      sub: `Carga: ${Math.round(rpeVal * durVal)} UA (Stress ${workout.loadIndex}/10)`,
       color: '#fb7185',
       border: 'rgba(251, 113, 133, 0.45)'
     }
   ];
 
   const cardW = 236;
-  const cardGap = 17;
+  const cardGap = 16; // 4 * 236 + 3 * 16 = 992 = FULL_W
+  const kpiInnerW = cardW - 28; // 208px de largura interna segura
   kpiCards.forEach((k, idx) => {
-    const cx = 42 + idx * (cardW + cardGap);
-    roundRect(cx, 440, cardW, 112, 18, '#090d16', k.border, 2);
+    const cx = M + idx * (cardW + cardGap);
+    roundRect(cx, 420, cardW, 124, 18, '#090d16', k.border, 2);
+
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '800 14px Inter, system-ui, sans-serif';
-    ctx.fillText(k.label, cx + 16, 468);
+    drawFittedText(k.label, cx + 14, 446, kpiInnerW, 13, 10, '800');
 
     ctx.fillStyle = k.color;
-    ctx.font = '900 25px monospace';
-    ctx.fillText(k.val, cx + 16, 504);
+    drawFittedText(k.val, cx + 14, 482, kpiInnerW, 23, 15, '900', 'monospace');
 
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = '600 14px Inter, system-ui, sans-serif';
-    ctx.fillText(k.sub, cx + 16, 534);
+    const subLines = wrapLines(k.sub, kpiInnerW, '600 13px Inter, system-ui, sans-serif');
+    subLines.slice(0, 2).forEach((sLine, sIdx) => {
+      drawFittedText(sLine, cx + 14, 508 + sIdx * 18, kpiInnerW, 13, 10, '600');
+    });
   });
 
-  // 6. Caixa Tática Pareto 80/20 (Y = 568..692)
-  roundRect(42, 568, W - 84, 122, 20, '#091512', 'rgba(16, 185, 129, 0.45)', 2);
+  // 6. Caixa Tática Pareto 80/20 (Y = 558..672, h = 114)
+  roundRect(M, 558, FULL_W, 114, 20, '#091512', 'rgba(16, 185, 129, 0.45)', 2);
   ctx.fillStyle = '#34d399';
-  ctx.font = '900 17px Inter, system-ui, sans-serif';
-  ctx.fillText('DIRETIVA TÁTICA PARETO 80/20 (FOCO VITAL DA SESSÃO):', 66, 598);
+  drawFittedText('DIRETIVA TÁTICA PARETO 80/20 (FOCO VITAL DA SESSÃO):', TEXT_X, 586, MAX_TEXT_W, 16, 12, '900');
 
   ctx.fillStyle = '#e2e8f0';
   const paretoLines = wrapLines(
     paretoDirective.vital20Focus || workout.coachNote,
-    W - 132,
-    '600 18px Inter, system-ui, sans-serif'
+    MAX_TEXT_W,
+    '600 16.5px Inter, system-ui, sans-serif'
   );
   paretoLines.slice(0, 3).forEach((ln, idx) => {
-    ctx.fillText(ln, 66, 626 + idx * 24);
+    drawFittedText(ln, TEXT_X, 612 + idx * 22, MAX_TEXT_W, 16.5, 12, '600');
   });
 
-  // 7. Secção Central: Prescrição Completa dos Blocos de Treino (Y = 708..1645)
+  // 7. Secção Central Auto-Adaptativa: Blocos de Treino (Y = 686..1642)
   ctx.fillStyle = '#facc15';
-  ctx.font = '900 20px Inter, system-ui, sans-serif';
-  ctx.fillText('ESTRUTURA DETALHADA DOS BLOCOS, ZONAS & CARGAS (1RM / DIVISÃO):', 42, 734);
+  drawFittedText(
+    'ESTRUTURA DETALHADA DOS BLOCOS, ZONAS & CARGAS (1RM / DIVISÃO):',
+    M,
+    708,
+    FULL_W,
+    18.5,
+    13,
+    '900'
+  );
 
-  let cursorY = 750;
-  const maxBlocksBottom = 1640;
-  const numBlocks = (workout.blocks && workout.blocks.length) || 1;
-  const availH = maxBlocksBottom - cursorY;
-  // Ajusta dinamicamente o tamanho da fonte se o treino tiver muitos blocos
-  const detailFontPx = numBlocks >= 4 ? 17 : 19;
-  const detailLineH = numBlocks >= 4 ? 23 : 26;
+  const blocksStartTop = 722;
+  const maxBlocksBottom = 1642;
+  const availBlocksH = maxBlocksBottom - blocksStartTop; // 920px disponíveis
+  const blocksList = workout.blocks || [];
+  const blockTextX = M + 28; // 72px
+  const blockMaxTextW = FULL_W - 52; // 940px (72 + 940 = 1012 <= 1036 - 24)
 
-  (workout.blocks || []).forEach((block, bIdx) => {
-    if (cursorY >= maxBlocksBottom - 60) return;
+  // Pré-processa as prescrições de cada bloco
+  const buildBlockRenderPlan = (fontPx) => {
+    const lineH = Math.round(fontPx * 1.32);
+    const chipFontPx = Math.max(12, fontPx - 2);
+    const chipLineH = Math.round(chipFontPx * 1.3);
+    const titlePx = Math.min(20, fontPx + 2);
+    const blockGap = blocksList.length >= 4 ? 10 : 12;
 
-    const detailLines = wrapLines(
-      block.details,
-      W - 140,
-      `500 ${detailFontPx}px Inter, system-ui, sans-serif`
+    const plans = blocksList.map((block) => {
+      const detailLines = wrapLines(
+        block.details,
+        blockMaxTextW,
+        `500 ${fontPx}px Inter, system-ui, sans-serif`
+      );
+
+      const rmChips = [];
+      if (block.strengthPrescriptions && block.strengthPrescriptions.length > 0) {
+        block.strengthPrescriptions.forEach((sp) => {
+          const pctKey = `${sp.exId}_d${workout.dayNum}`;
+          const pct = customPcts[pctKey] !== undefined ? customPcts[pctKey] : sp.defaultPct;
+          const userRM = oneRMs[sp.exId] || 0;
+          const calcKg = Math.round(userRM * pct);
+          rmChips.push(`${sp.name}: ${sp.sets} @ ${Math.round(pct * 100)}% = ${calcKg}kg (1RM ${userRM}kg)`);
+        });
+      }
+      const rmLines = rmChips.length > 0
+        ? wrapLines(`⚡ CARGAS 1RM: ${rmChips.join('  |  ')}`, blockMaxTextW, `800 ${chipFontPx}px monospace`)
+        : [];
+
+      const rwChips = [];
+      if (block.usesRW && block.usesRW.length > 0) {
+        if (block.usesRW.includes('sledPush')) rwChips.push(`Sled Push: ${division.sledPush}kg`);
+        if (block.usesRW.includes('sledPull')) rwChips.push(`Sled Pull: ${division.sledPull}kg`);
+        if (block.usesRW.includes('farmersCarry')) rwChips.push(`Farmer's: 2x${division.farmersCarry}kg`);
+        if (block.usesRW.includes('sandbagLunges')) rwChips.push(`Lunges: ${division.sandbagLunges}kg`);
+        if (block.usesRW.includes('wallBalls')) rwChips.push(`Wall Balls: ${division.wallBallsWeight}kg (${division.wallBallsTarget})`);
+      }
+      const rwLines = rwChips.length > 0
+        ? wrapLines(`🏋️ PESOS PROVA (${divisionName}): ${rwChips.join(' • ')}`, blockMaxTextW, `800 ${chipFontPx}px monospace`)
+        : [];
+
+      const topPad = 42;
+      const bottomPad = 14;
+      const chipsExtraH =
+        (rmLines.length > 0 ? rmLines.length * chipLineH + 6 : 0) +
+        (rwLines.length > 0 ? rwLines.length * chipLineH + 6 : 0);
+      const boxH = topPad + detailLines.length * lineH + chipsExtraH + bottomPad;
+
+      return {
+        block,
+        detailLines,
+        rmLines,
+        rwLines,
+        boxH
+      };
+    });
+
+    const totalH = plans.reduce((acc, p) => acc + p.boxH, 0) + Math.max(0, plans.length - 1) * blockGap;
+    return { fontPx, titlePx, lineH, chipFontPx, chipLineH, blockGap, plans, totalH };
+  };
+
+  // Escolhe automaticamente o maior tamanho de fonte que caiba 100% na área vertical sem cortar nada
+  const candidateSizes = [18.5, 17.5, 16.5, 15.5, 14.5, 13.5, 12.5];
+  let chosenPlan = buildBlockRenderPlan(candidateSizes[candidateSizes.length - 1]);
+  for (let sIdx = 0; sIdx < candidateSizes.length; sIdx++) {
+    const testPlan = buildBlockRenderPlan(candidateSizes[sIdx]);
+    if (testPlan.totalH <= availBlocksH) {
+      chosenPlan = testPlan;
+      break;
+    }
+  }
+
+  let cursorY = blocksStartTop;
+  chosenPlan.plans.forEach((p, bIdx) => {
+    if (cursorY >= maxBlocksBottom - 40) return;
+    const boxH = Math.min(p.boxH, maxBlocksBottom - cursorY);
+
+    roundRect(M, cursorY, FULL_W, boxH, 16, '#0b1120', '#1e293b', 2);
+    roundRect(M, cursorY, 10, boxH, 5, bIdx === 0 ? '#facc15' : bIdx === 1 ? '#22d3ee' : bIdx === 2 ? '#a855f7' : '#34d399', null);
+
+    ctx.fillStyle = '#facc15';
+    drawFittedText(
+      `${bIdx + 1}. ${String(p.block.name || '').toUpperCase()}`,
+      blockTextX,
+      cursorY + 29,
+      blockMaxTextW,
+      chosenPlan.titlePx,
+      13,
+      '900'
     );
 
-    // Linhas extras de prescrição de força 1RM calculadas em kg
-    const rmChips = [];
-    if (block.strengthPrescriptions && block.strengthPrescriptions.length > 0) {
-      block.strengthPrescriptions.forEach((sp) => {
-        const pctKey = `${sp.exId}_d${workout.dayNum}`;
-        const pct = customPcts[pctKey] !== undefined ? customPcts[pctKey] : sp.defaultPct;
-        const userRM = oneRMs[sp.exId] || 0;
-        const calcKg = Math.round(userRM * pct);
-        rmChips.push(`${sp.name}: ${sp.sets} @ ${Math.round(pct * 100)}% 1RM = ${calcKg} kg (1RM ${userRM}kg)`);
+    let lineY = cursorY + 29 + chosenPlan.lineH;
+    ctx.fillStyle = '#f1f5f9';
+    p.detailLines.forEach((ln) => {
+      if (lineY <= cursorY + boxH - 10) {
+        drawFittedText(ln, blockTextX, lineY, blockMaxTextW, chosenPlan.fontPx, 11.5, '500');
+        lineY += chosenPlan.lineH;
+      }
+    });
+
+    if (p.rmLines.length > 0) {
+      lineY += 4;
+      ctx.fillStyle = '#fbbf24';
+      p.rmLines.forEach((rmLn) => {
+        if (lineY <= cursorY + boxH - 8) {
+          drawFittedText(rmLn, blockTextX, lineY, blockMaxTextW, chosenPlan.chipFontPx, 11, '800', 'monospace');
+          lineY += chosenPlan.chipLineH;
+        }
       });
     }
 
-    // Pesos oficiais da divisão selecionada
-    const rwChips = [];
-    if (block.usesRW && block.usesRW.length > 0) {
-      if (block.usesRW.includes('sledPush')) rwChips.push(`Sled Push: ${division.sledPush}kg`);
-      if (block.usesRW.includes('sledPull')) rwChips.push(`Sled Pull: ${division.sledPull}kg`);
-      if (block.usesRW.includes('farmersCarry')) rwChips.push(`Farmer's: 2x${division.farmersCarry}kg`);
-      if (block.usesRW.includes('sandbagLunges')) rwChips.push(`Lunges: ${division.sandbagLunges}kg`);
-      if (block.usesRW.includes('wallBalls')) rwChips.push(`Wall Balls: ${division.wallBallsWeight}kg (${division.wallBallsTarget})`);
-    }
-
-    const maxDetailLines = Math.max(2, Math.floor((availH / numBlocks - 78) / detailLineH));
-    const visibleLines = detailLines.slice(0, maxDetailLines);
-    const extraHeight = (rmChips.length > 0 ? 38 : 0) + (rwChips.length > 0 ? 34 : 0);
-    const boxH = Math.min(maxBlocksBottom - cursorY, 58 + visibleLines.length * detailLineH + extraHeight);
-
-    roundRect(42, cursorY, W - 84, boxH, 18, '#0b1120', '#1e293b', 2);
-
-    // Barra lateral colorida do bloco
-    roundRect(42, cursorY, 10, boxH, 5, bIdx === 0 ? '#facc15' : bIdx === 1 ? '#22d3ee' : '#a855f7', null);
-
-    ctx.fillStyle = '#facc15';
-    ctx.font = '900 21px Inter, system-ui, sans-serif';
-    ctx.fillText(`${bIdx + 1}. ${String(block.name || '').toUpperCase()}`, 68, cursorY + 34);
-
-    ctx.fillStyle = '#f1f5f9';
-    ctx.font = `500 ${detailFontPx}px Inter, system-ui, sans-serif`;
-    visibleLines.forEach((ln, lIdx) => {
-      ctx.fillText(ln, 68, cursorY + 64 + lIdx * detailLineH);
-    });
-
-    let chipY = cursorY + 64 + visibleLines.length * detailLineH + 6;
-    if (rmChips.length > 0 && chipY + 24 <= cursorY + boxH) {
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = '800 16px monospace';
-      ctx.fillText(`⚡ CARGAS 1RM: ${rmChips.join('  |  ').slice(0, 88)}`, 68, chipY + 14);
-      chipY += 32;
-    }
-    if (rwChips.length > 0 && chipY + 20 <= cursorY + boxH) {
+    if (p.rwLines.length > 0) {
+      lineY += 4;
       ctx.fillStyle = '#38bdf8';
-      ctx.font = '800 16px monospace';
-      ctx.fillText(`🏋️ PESOS PROVA (${divisionName}): ${rwChips.join(' • ')}`, 68, chipY + 12);
+      p.rwLines.forEach((rwLn) => {
+        if (lineY <= cursorY + boxH - 8) {
+          drawFittedText(rwLn, blockTextX, lineY, blockMaxTextW, chosenPlan.chipFontPx, 11, '800', 'monospace');
+          lineY += chosenPlan.chipLineH;
+        }
+      });
     }
 
-    cursorY += boxH + 14;
+    cursorY += boxH + chosenPlan.blockGap;
   });
 
-  // 8. Faixa de Nutrição Diária & Meta Roxzone (Y = 1656..1782)
-  roundRect(42, 1656, W - 84, 122, 20, '#09131c', 'rgba(56, 189, 248, 0.35)', 2);
+  // 8. Faixa de Nutrição Diária & Meta Roxzone (Y = 1656..1780, h = 124)
+  roundRect(M, 1656, FULL_W, 124, 20, '#09131c', 'rgba(56, 189, 248, 0.35)', 2);
   ctx.fillStyle = '#38bdf8';
-  ctx.font = '900 17px Inter, system-ui, sans-serif';
-  ctx.fillText(`SUPORTE NUTRICIONAL (${athleteWeight} KG) & TÁTICA ROXZONE:`, 68, 1688);
+  drawFittedText(`SUPORTE NUTRICIONAL (${athleteWeight} KG) & TÁTICA ROXZONE:`, TEXT_X, 1686, MAX_TEXT_W, 16.5, 12, '900');
 
   ctx.fillStyle = '#f8fafc';
-  ctx.font = '700 18px Inter, system-ui, sans-serif';
-  ctx.fillText(
-    `• Carboidratos Hoje: ${dailyNutrition.carbsGrams || '375g a 525g'} (${dailyNutrition.carbsPerKg || '5-7 g/kg'})   • Proteína: ${dailyNutrition.proteinGrams || '120g a 165g'}`,
-    68,
-    1720
-  );
-  ctx.fillStyle = '#cbd5e1';
-  ctx.font = '600 17px Inter, system-ui, sans-serif';
-  ctx.fillText(
-    `• Pré-Treino: ${dailyNutrition.preWorkoutCarbs || '115g'}  |  Pós-Treino: ${dailyNutrition.postWorkoutCarbs || '75g + 30g Whey'}  |  Roxzone Alvo: ${roxzoneTargetSec}s/passagem`,
-    68,
-    1752
+  drawFittedText(
+    `• Carboidratos Hoje: ${dailyNutrition.carbsGrams || '375g a 525g'} (${dailyNutrition.carbsPerKg || '5-7 g/kg'})  • Proteína: ${dailyNutrition.proteinGrams || '120g a 165g'}`,
+    TEXT_X,
+    1718,
+    MAX_TEXT_W,
+    17,
+    12,
+    '700'
   );
 
-  // 9. Rodapé Profissional (Y = 1796..1900)
-  roundRect(42, 1796, W - 84, 88, 18, '#020617', '#1e293b', 1.5);
+  ctx.fillStyle = '#cbd5e1';
+  drawFittedText(
+    `• Pré-Treino: ${dailyNutrition.preWorkoutCarbs || '115g'}  |  Pós-Treino: ${dailyNutrition.postWorkoutCarbs || '75g + 30g Whey'}  |  Roxzone Alvo: ${roxzoneTargetSec}s`,
+    TEXT_X,
+    1750,
+    MAX_TEXT_W,
+    15.5,
+    11.5,
+    '600'
+  );
+
+  // 9. Rodapé Profissional (Y = 1794..1886, h = 92)
+  roundRect(M, 1794, FULL_W, 92, 18, '#020617', '#1e293b', 1.5);
   ctx.fillStyle = '#facc15';
-  ctx.font = '900 19px Inter, system-ui, sans-serif';
-  ctx.fillText('ARGEU RODRIGUES • PERSONAL TRAINER | CREF: 158814-G/SP', 68, 1834);
+  drawFittedText('ARGEU RODRIGUES • PERSONAL TRAINER | CREF: 158814-G/SP', TEXT_X, 1832, 710, 18, 12, '900');
 
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '600 16px Inter, system-ui, sans-serif';
-  ctx.fillText('HYROX Periodização • App Web & Mobile: https://hyrox-simulado-26d.web.app', 68, 1864);
+  drawFittedText('HYROX Periodização • Web & Mobile: https://hyrox-simulado-26d.web.app', TEXT_X, 1862, 710, 15, 11, '600');
 
-  ctx.textAlign = 'right';
   ctx.fillStyle = '#22d3ee';
-  ctx.font = '900 18px monospace';
-  ctx.fillText('FORMATO 9:16 PDF', W - 68, 1850);
-  ctx.textAlign = 'left';
+  drawFittedText('FORMATO 9:16 PDF', M + FULL_W - PAD_X, 1848, 210, 17, 12, '900', 'monospace', 'right');
 
   return canvas;
 };
