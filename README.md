@@ -63,7 +63,11 @@ A aba **Analytics & Gráficos (7)** implementa um motor vetorial interativo em *
 
 Todas as atualizações estruturais e evolutivas do projeto são registadas abaixo:
 
-- **v1.5.0 (Atual) — Banco de Dados de Alunos & Atletas, Snapshots Históricos & Comparador Lado a Lado (`006-athlete-database-comparison`)**:
+- **v1.6.0 (Atual) — Gerador de PDF & Poster Vertical 9:16 do Treino do Dia para Envio Mobile / WhatsApp (`007-workout-pdf-9-16`)**:
+  - **Exportação Nativa de PDF em Formato 9:16 (`540pt × 960pt` / `1080×1920 HD`)**: Novo botão **"📄 PDF 9:16 • Enviar Treino"** na aba *Treino do Dia* com pré-visualização ao vivo em proporção vertical 9:16 e download imediato do ficheiro `.pdf` (`HYROX_Dia_XX_Aluno_9x16.pdf`) sem margens brancas;
+  - **Ficha Completa e Sincronizada no Poster 9:16**: Inclui Nome do Aluno/Atleta ativo, Divisão Oficial, Peso Corporal, Zona de Corrida Prescrita (`Z1`–`Z5` em `km/h` e `/km`), Diretiva Tática Pareto 80/20, todos os Blocos da Sessão com cargas exatas calculadas pelos `1RMs` (`kg`), Pesos Oficiais da Prova, Nutrição Diária e assinatura profissional;
+  - **Partilha Rápida para WhatsApp / Telemóvel & Flyer PNG HD**: Suporte integrado a `navigator.share` (envio direto do ficheiro `.pdf` no telemóvel), resumo estruturado para WhatsApp, download em `.PNG` HD (`1080×1920`) e impressão vetorial `@page { size: 108mm 192mm }`.
+- **v1.5.0 — Banco de Dados de Alunos & Atletas, Snapshots Históricos & Comparador Lado a Lado (`006-athlete-database-comparison`)**:
   - **Banco de Dados Persistente de Alunos & Atletas (`athletesDatabase`)**: Cadastro de múltiplos alunos/atletas com fichas individualizadas (Divisão, Peso Corporal, Pace GRP, Zonas de Corrida `Z1`–`Z5` em `km/h`, 1RMs dos 9 exercícios, Diário de 26 dias e Observações do Treinador), guardado automaticamente em `localStorage`, *Cloud Firestore* (`hyrox_profiles/{syncCode}`) e ficheiros `.JSON`;
   - **Seletor Rápido no Cabeçalho & Fotografia Histórica (*Snapshots Antes vs. Depois*)**: Alternância com 1 clique entre alunos guardados e botão para congelar *Snapshots* datados (ex: *Avaliação Inicial Semana 1* vs. *Semana 4*) para acompanhar a evolução longitudinal do mesmo atleta;
   - **Comparador Analítico Lado a Lado (`Perfil A vs. Perfil B`)**: Nova aba **Banco de Dados & Comparar** com **Gráfico de Radar Duplo Sobreposto (5 Capacidades)**, tabela comparativa das **5 Zonas de Corrida (`Z1` a `Z5` em `km/h` e `/km`)** e tabela comparativa de **Força Máxima (`1RM` absoluto em `kg` e relativo `kg/kg`)** com cálculo automático de diferenciais ($\Delta$).

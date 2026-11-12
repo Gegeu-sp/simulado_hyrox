@@ -133,6 +133,8 @@ const Users = createSvgIcon(React.createElement(React.Fragment, null, React.crea
 const Plus = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("line", { "x1": "12", "x2": "12", "y1": "5", "y2": "19" }), React.createElement("line", { "x1": "5", "x2": "19", "y1": "12", "y2": "12" })));
 const Copy = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("rect", { "width": "14", "height": "14", "x": "8", "y": "8", "rx": "2", "ry": "2" }), React.createElement("path", { "d": "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" })));
 const Trash2 = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M3 6h18" }), React.createElement("path", { "d": "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" }), React.createElement("path", { "d": "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" })));
+const FileText = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("path", { "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }), React.createElement("path", { "d": "M14 2v4a2 2 0 0 0 2 2h4" }), React.createElement("path", { "d": "M10 9H8" }), React.createElement("path", { "d": "M16 13H8" }), React.createElement("path", { "d": "M16 17H8" })));
+const Share2 = createSvgIcon(React.createElement(React.Fragment, null, React.createElement("circle", { "cx": "18", "cy": "5", "r": "3" }), React.createElement("circle", { "cx": "6", "cy": "12", "r": "3" }), React.createElement("circle", { "cx": "18", "cy": "19", "r": "3" }), React.createElement("line", { "x1": "8.59", "x2": "15.42", "y1": "13.51", "y2": "17.49" }), React.createElement("line", { "x1": "15.41", "x2": "8.59", "y1": "6.51", "y2": "10.49" })));
 
 // ==========================================
 // EXERCÍCIOS DE FORÇA BASE & 1RM PADRÃO
@@ -1228,6 +1230,440 @@ const computeRecordSummaryMetrics = (record) => {
       overall
     }
   };
+};
+
+// Empacotador PDF-1.4 Nativo em Formato 9:16 (540pt x 960pt = 1080px x 1920px HD) — Zero Dependências Externas (Feature 007)
+const buildPdfBlobFromJpegDataUrl = (jpegDataUrl, imgWidth = 1080, imgHeight = 1920) => {
+  const base64Data = String(jpegDataUrl || '').split(',')[1] || '';
+  const binaryStr = atob(base64Data);
+  const imgBytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    imgBytes[i] = binaryStr.charCodeAt(i);
+  }
+
+  // Dimensões exatas 9:16 em pontos tipográficos PDF (540pt x 960pt -> razão 9:16 = 0.5625)
+  const pageW = 540;
+  const pageH = 960;
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const offsets = [0];
+  let byteLength = 0;
+
+  const pushStr = (str) => {
+    const arr = encoder.encode(str);
+    chunks.push(arr);
+    byteLength += arr.length;
+  };
+  const pushBytes = (arr) => {
+    chunks.push(arr);
+    byteLength += arr.length;
+  };
+  const markObj = (objNum) => {
+    offsets[objNum] = byteLength;
+  };
+
+  pushStr('%PDF-1.4\n%\xFF\xFF\xFF\xFF\n');
+
+  // Objeto 1: Catalog
+  markObj(1);
+  pushStr('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+  // Objeto 2: Pages
+  markObj(2);
+  pushStr('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+
+  // Objeto 3: Page (9:16 -> 540 x 960 pt)
+  markObj(3);
+  pushStr(
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`
+  );
+
+  // Objeto 4: Image XObject (JPEG DCTDecode 1080x1920)
+  markObj(4);
+  pushStr(
+    `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgWidth} /Height ${imgHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.length} >>\nstream\n`
+  );
+  pushBytes(imgBytes);
+  pushStr('\nendstream\nendobj\n');
+
+  // Objeto 5: Content Stream que desenha a imagem preenchendo 100% da página 9:16
+  const contentStream = `q\n${pageW} 0 0 ${pageH} 0 0 cm\n/Im1 Do\nQ\n`;
+  const contentBytes = encoder.encode(contentStream);
+  markObj(5);
+  pushStr(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
+  pushBytes(contentBytes);
+  pushStr('endstream\nendobj\n');
+
+  // Tabela XREF
+  const xrefOffset = byteLength;
+  pushStr('xref\n0 6\n0000000000 65535 f \n');
+  for (let idx = 1; idx <= 5; idx++) {
+    const offStr = String(offsets[idx] || 0).padStart(10, '0');
+    pushStr(`${offStr} 00000 n \n`);
+  }
+  pushStr(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+  return new Blob(chunks, { type: 'application/pdf' });
+};
+
+// Motor Gráfico Canvas HD 9:16 (1080x1920) para gerar o Flyer/PDF do Treino do Dia (Feature 007)
+const renderWorkoutPoster9x16ToCanvas = (payload) => {
+  const W = 1080;
+  const H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const {
+    athleteName = 'Atleta HYROX',
+    athleteRole = 'Ciclo 26 Dias',
+    divisionName = 'Men Open',
+    division = DIVISIONS.MEN_OPEN,
+    athleteWeight = 75,
+    goalPace = '04:45',
+    runningZonesKmh = {},
+    workout = WORKOUT_DAYS[0],
+    microcycle = MICROCYCLES[0],
+    prescribedZoneKey = 'Z3',
+    currentLog = {},
+    isCompleted = false,
+    paretoDirective = {},
+    oneRMs = {},
+    customPcts = {},
+    dailyNutrition = {},
+    roxzoneTargetSec = 22
+  } = payload || {};
+
+  const roundRect = (x, y, w, h, r, fill, stroke, lineW = 2) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lineW;
+      ctx.stroke();
+    }
+  };
+
+  const wrapLines = (text, maxWidth, fontSpec) => {
+    if (fontSpec) ctx.font = fontSpec;
+    const rawLines = String(text || '').split(/\r?\n/);
+    const result = [];
+    rawLines.forEach((raw) => {
+      const words = raw.trim().split(/\s+/).filter(Boolean);
+      if (words.length === 0) return;
+      let line = words[0];
+      for (let i = 1; i < words.length; i++) {
+        const test = `${line} ${words[i]}`;
+        if (ctx.measureText(test).width <= maxWidth) {
+          line = test;
+        } else {
+          result.push(line);
+          line = words[i];
+        }
+      }
+      result.push(line);
+    });
+    return result;
+  };
+
+  // 1. Fundo Pro Dark Mode (Gradiente Vertical Profundo 9:16)
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#020617');
+  bgGrad.addColorStop(0.5, '#0f172a');
+  bgGrad.addColorStop(1, '#020617');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grelha Tática Subtil no Topo
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)';
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx <= W; gx += 60) {
+    ctx.beginPath();
+    ctx.moveTo(gx, 0);
+    ctx.lineTo(gx, 420);
+    ctx.stroke();
+  }
+  for (let gy = 0; gy <= 420; gy += 60) {
+    ctx.beginPath();
+    ctx.moveTo(0, gy);
+    ctx.lineTo(W, gy);
+    ctx.stroke();
+  }
+
+  // Barra Superior Amarela HYROX
+  ctx.fillStyle = '#facc15';
+  ctx.fillRect(0, 0, W, 14);
+
+  // 2. Cabeçalho Institucional (Y = 38..145)
+  roundRect(42, 36, 86, 86, 20, '#facc15', null);
+  ctx.fillStyle = '#020617';
+  ctx.font = '900 42px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('HX', 85, 94);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 34px Inter, system-ui, sans-serif';
+  ctx.fillText('HYROX PERIODIZAÇÃO', 148, 76);
+
+  ctx.fillStyle = '#facc15';
+  ctx.font = '800 20px Inter, system-ui, sans-serif';
+  ctx.fillText('FICHA OFICIAL DO TREINO DO DIA • FORMATO 9:16 MOBILE', 148, 108);
+
+  // Badge de Status no Canto Direito
+  const statusBg = isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(250, 204, 21, 0.16)';
+  const statusBorder = isCompleted ? '#10b981' : '#facc15';
+  const statusText = isCompleted ? '✓ TREINO CONFIRMADO' : `DIA ${workout.dayNum} DE 26 • ${workout.date}`;
+  roundRect(720, 44, 318, 68, 16, statusBg, statusBorder, 2);
+  ctx.fillStyle = isCompleted ? '#34d399' : '#fde047';
+  ctx.font = '900 20px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(statusText, 879, 85);
+
+  // 3. Cartão do Aluno / Atleta Ativo (Y = 142..268)
+  roundRect(42, 142, W - 84, 122, 22, '#0f172a', '#1e293b', 2);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 17px Inter, system-ui, sans-serif';
+  ctx.fillText('ALUNO / ATLETA:', 68, 178);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 28px Inter, system-ui, sans-serif';
+  ctx.fillText(String(athleteName || 'Atleta Principal').slice(0, 34), 68, 214);
+
+  ctx.fillStyle = '#c084fc';
+  ctx.font = '700 18px Inter, system-ui, sans-serif';
+  ctx.fillText(`${divisionName} • Peso: ${athleteWeight} kg • ${athleteRole}`, 68, 244);
+
+  // Caixa Direita dentro do Cartão do Atleta: Pace GRP & Velocidade Z3
+  const z3Speed = runningZonesKmh.Z3 || paceSecToKmh(paceStrToSeconds(goalPace, 285));
+  roundRect(690, 158, 326, 90, 16, '#020617', 'rgba(34, 211, 238, 0.4)', 2);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 15px Inter, system-ui, sans-serif';
+  ctx.fillText('RITMO ALVO GRP (ZONA 3):', 712, 186);
+  ctx.fillStyle = '#22d3ee';
+  ctx.font = '900 28px monospace';
+  ctx.fillText(`${goalPace}/km • ${z3Speed} km/h`, 712, 228);
+
+  // 4. Banner do Dia & Sessão Principal (Y = 282..424)
+  roundRect(42, 282, W - 84, 142, 24, '#111827', '#facc15', 2.5);
+  ctx.fillStyle = '#facc15';
+  ctx.font = '900 19px Inter, system-ui, sans-serif';
+  ctx.fillText(
+    `DIA ${workout.dayNum}/26 (${workout.date} • ${workout.weekday.toUpperCase()}) • ${microcycle.title.toUpperCase()}`,
+    68,
+    320
+  );
+
+  ctx.fillStyle = '#ffffff';
+  const titleLines = wrapLines(workout.type, W - 140, '900 31px Inter, system-ui, sans-serif');
+  titleLines.slice(0, 2).forEach((ln, idx) => {
+    ctx.fillText(ln, 68, 362 + idx * 36);
+  });
+
+  // 5. Quatro Pílulas de Telemetria da Sessão (Y = 440..552)
+  const zoneMeta = RUNNING_ZONES_META[prescribedZoneKey] || RUNNING_ZONES_META.Z3;
+  const zoneKmh = prescribedZoneKey !== 'REST'
+    ? (runningZonesKmh[prescribedZoneKey] || z3Speed)
+    : (runningZonesKmh.Z1 || 10.1);
+  const zonePace = kmhToPaceStr(zoneKmh);
+  const usedKmh = currentLog.usedSpeedKmh || zoneKmh;
+  const usedZone = currentLog.usedZone || (prescribedZoneKey === 'REST' ? 'Z1' : prescribedZoneKey);
+
+  const kpiCards = [
+    {
+      label: 'DURAÇÃO & VOLUME',
+      val: `${currentLog.duration || workout.durationMin} min`,
+      sub: String(workout.volumeDesc || '').slice(0, 24),
+      color: '#ffffff',
+      border: '#334155'
+    },
+    {
+      label: `ZONA PRESCRITA (${prescribedZoneKey})`,
+      val: prescribedZoneKey === 'REST' ? 'Descanso Z1' : `${zoneKmh} km/h`,
+      sub: prescribedZoneKey === 'REST' ? 'Recuperação SNC' : `Pace: ${zonePace}/km (${zoneMeta.short})`,
+      color: '#22d3ee',
+      border: 'rgba(34, 211, 238, 0.45)'
+    },
+    {
+      label: 'VELOCIDADE REAL / DIA',
+      val: `${usedKmh} km/h (${usedZone})`,
+      sub: `Dist.: ${currentLog.distanceKm !== undefined ? currentLog.distanceKm : getDayPlannedRunDistanceKm(workout)} km • ${kmhToPaceStr(usedKmh)}/km`,
+      color: '#facc15',
+      border: 'rgba(250, 204, 21, 0.45)'
+    },
+    {
+      label: 'PSE BORG & STRESS',
+      val: `RPE ${currentLog.rpe || (workout.loadIndex === 0 ? 6 : workout.loadIndex + 9)}/20`,
+      sub: `Carga: ${Math.round((currentLog.rpe || (workout.loadIndex + 9)) * (currentLog.duration || workout.durationMin))} UA (${workout.loadIndex}/10)`,
+      color: '#fb7185',
+      border: 'rgba(251, 113, 133, 0.45)'
+    }
+  ];
+
+  const cardW = 236;
+  const cardGap = 17;
+  kpiCards.forEach((k, idx) => {
+    const cx = 42 + idx * (cardW + cardGap);
+    roundRect(cx, 440, cardW, 112, 18, '#090d16', k.border, 2);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '800 14px Inter, system-ui, sans-serif';
+    ctx.fillText(k.label, cx + 16, 468);
+
+    ctx.fillStyle = k.color;
+    ctx.font = '900 25px monospace';
+    ctx.fillText(k.val, cx + 16, 504);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '600 14px Inter, system-ui, sans-serif';
+    ctx.fillText(k.sub, cx + 16, 534);
+  });
+
+  // 6. Caixa Tática Pareto 80/20 (Y = 568..692)
+  roundRect(42, 568, W - 84, 122, 20, '#091512', 'rgba(16, 185, 129, 0.45)', 2);
+  ctx.fillStyle = '#34d399';
+  ctx.font = '900 17px Inter, system-ui, sans-serif';
+  ctx.fillText('DIRETIVA TÁTICA PARETO 80/20 (FOCO VITAL DA SESSÃO):', 66, 598);
+
+  ctx.fillStyle = '#e2e8f0';
+  const paretoLines = wrapLines(
+    paretoDirective.vital20Focus || workout.coachNote,
+    W - 132,
+    '600 18px Inter, system-ui, sans-serif'
+  );
+  paretoLines.slice(0, 3).forEach((ln, idx) => {
+    ctx.fillText(ln, 66, 626 + idx * 24);
+  });
+
+  // 7. Secção Central: Prescrição Completa dos Blocos de Treino (Y = 708..1645)
+  ctx.fillStyle = '#facc15';
+  ctx.font = '900 20px Inter, system-ui, sans-serif';
+  ctx.fillText('ESTRUTURA DETALHADA DOS BLOCOS, ZONAS & CARGAS (1RM / DIVISÃO):', 42, 734);
+
+  let cursorY = 750;
+  const maxBlocksBottom = 1640;
+  const numBlocks = (workout.blocks && workout.blocks.length) || 1;
+  const availH = maxBlocksBottom - cursorY;
+  // Ajusta dinamicamente o tamanho da fonte se o treino tiver muitos blocos
+  const detailFontPx = numBlocks >= 4 ? 17 : 19;
+  const detailLineH = numBlocks >= 4 ? 23 : 26;
+
+  (workout.blocks || []).forEach((block, bIdx) => {
+    if (cursorY >= maxBlocksBottom - 60) return;
+
+    const detailLines = wrapLines(
+      block.details,
+      W - 140,
+      `500 ${detailFontPx}px Inter, system-ui, sans-serif`
+    );
+
+    // Linhas extras de prescrição de força 1RM calculadas em kg
+    const rmChips = [];
+    if (block.strengthPrescriptions && block.strengthPrescriptions.length > 0) {
+      block.strengthPrescriptions.forEach((sp) => {
+        const pctKey = `${sp.exId}_d${workout.dayNum}`;
+        const pct = customPcts[pctKey] !== undefined ? customPcts[pctKey] : sp.defaultPct;
+        const userRM = oneRMs[sp.exId] || 0;
+        const calcKg = Math.round(userRM * pct);
+        rmChips.push(`${sp.name}: ${sp.sets} @ ${Math.round(pct * 100)}% 1RM = ${calcKg} kg (1RM ${userRM}kg)`);
+      });
+    }
+
+    // Pesos oficiais da divisão selecionada
+    const rwChips = [];
+    if (block.usesRW && block.usesRW.length > 0) {
+      if (block.usesRW.includes('sledPush')) rwChips.push(`Sled Push: ${division.sledPush}kg`);
+      if (block.usesRW.includes('sledPull')) rwChips.push(`Sled Pull: ${division.sledPull}kg`);
+      if (block.usesRW.includes('farmersCarry')) rwChips.push(`Farmer's: 2x${division.farmersCarry}kg`);
+      if (block.usesRW.includes('sandbagLunges')) rwChips.push(`Lunges: ${division.sandbagLunges}kg`);
+      if (block.usesRW.includes('wallBalls')) rwChips.push(`Wall Balls: ${division.wallBallsWeight}kg (${division.wallBallsTarget})`);
+    }
+
+    const maxDetailLines = Math.max(2, Math.floor((availH / numBlocks - 78) / detailLineH));
+    const visibleLines = detailLines.slice(0, maxDetailLines);
+    const extraHeight = (rmChips.length > 0 ? 38 : 0) + (rwChips.length > 0 ? 34 : 0);
+    const boxH = Math.min(maxBlocksBottom - cursorY, 58 + visibleLines.length * detailLineH + extraHeight);
+
+    roundRect(42, cursorY, W - 84, boxH, 18, '#0b1120', '#1e293b', 2);
+
+    // Barra lateral colorida do bloco
+    roundRect(42, cursorY, 10, boxH, 5, bIdx === 0 ? '#facc15' : bIdx === 1 ? '#22d3ee' : '#a855f7', null);
+
+    ctx.fillStyle = '#facc15';
+    ctx.font = '900 21px Inter, system-ui, sans-serif';
+    ctx.fillText(`${bIdx + 1}. ${String(block.name || '').toUpperCase()}`, 68, cursorY + 34);
+
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = `500 ${detailFontPx}px Inter, system-ui, sans-serif`;
+    visibleLines.forEach((ln, lIdx) => {
+      ctx.fillText(ln, 68, cursorY + 64 + lIdx * detailLineH);
+    });
+
+    let chipY = cursorY + 64 + visibleLines.length * detailLineH + 6;
+    if (rmChips.length > 0 && chipY + 24 <= cursorY + boxH) {
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '800 16px monospace';
+      ctx.fillText(`⚡ CARGAS 1RM: ${rmChips.join('  |  ').slice(0, 88)}`, 68, chipY + 14);
+      chipY += 32;
+    }
+    if (rwChips.length > 0 && chipY + 20 <= cursorY + boxH) {
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '800 16px monospace';
+      ctx.fillText(`🏋️ PESOS PROVA (${divisionName}): ${rwChips.join(' • ')}`, 68, chipY + 12);
+    }
+
+    cursorY += boxH + 14;
+  });
+
+  // 8. Faixa de Nutrição Diária & Meta Roxzone (Y = 1656..1782)
+  roundRect(42, 1656, W - 84, 122, 20, '#09131c', 'rgba(56, 189, 248, 0.35)', 2);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '900 17px Inter, system-ui, sans-serif';
+  ctx.fillText(`SUPORTE NUTRICIONAL (${athleteWeight} KG) & TÁTICA ROXZONE:`, 68, 1688);
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = '700 18px Inter, system-ui, sans-serif';
+  ctx.fillText(
+    `• Carboidratos Hoje: ${dailyNutrition.carbsGrams || '375g a 525g'} (${dailyNutrition.carbsPerKg || '5-7 g/kg'})   • Proteína: ${dailyNutrition.proteinGrams || '120g a 165g'}`,
+    68,
+    1720
+  );
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '600 17px Inter, system-ui, sans-serif';
+  ctx.fillText(
+    `• Pré-Treino: ${dailyNutrition.preWorkoutCarbs || '115g'}  |  Pós-Treino: ${dailyNutrition.postWorkoutCarbs || '75g + 30g Whey'}  |  Roxzone Alvo: ${roxzoneTargetSec}s/passagem`,
+    68,
+    1752
+  );
+
+  // 9. Rodapé Profissional (Y = 1796..1900)
+  roundRect(42, 1796, W - 84, 88, 18, '#020617', '#1e293b', 1.5);
+  ctx.fillStyle = '#facc15';
+  ctx.font = '900 19px Inter, system-ui, sans-serif';
+  ctx.fillText('ARGEU RODRIGUES • PERSONAL TRAINER | CREF: 158814-G/SP', 68, 1834);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '600 16px Inter, system-ui, sans-serif';
+  ctx.fillText('HYROX Periodização • App Web & Mobile: https://hyrox-simulado-26d.web.app', 68, 1864);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#22d3ee';
+  ctx.font = '900 18px monospace';
+  ctx.fillText('FORMATO 9:16 PDF', W - 68, 1850);
+  ctx.textAlign = 'left';
+
+  return canvas;
 };
 
 function App() {
@@ -3070,6 +3506,197 @@ function App() {
     };
   }, [athleteWeight, currentWorkout]);
 
+  // Estados e Handlers do Gerador de PDF / Poster Vertical 9:16 do Treino do Dia (Feature 007)
+  const [pdfPosterModalOpen, setPdfPosterModalOpen] = useState(false);
+  const [pdfPosterDataUrl, setPdfPosterDataUrl] = useState('');
+  const [pdfActionMessage, setPdfActionMessage] = useState('');
+
+  const buildCurrentWorkoutPosterCanvas = () => {
+    return renderWorkoutPoster9x16ToCanvas({
+      athleteName: activeAthleteRecord ? activeAthleteRecord.name : 'Atleta Principal',
+      athleteRole: activeAthleteRecord ? activeAthleteRecord.roleOrCategory : 'Ciclo 26 Dias',
+      divisionName: currentDivision ? currentDivision.name : 'Men Open',
+      division: currentDivision,
+      athleteWeight,
+      goalPace,
+      runningZonesKmh,
+      workout: currentWorkout,
+      microcycle: currentMicrocycle,
+      prescribedZoneKey: currentPrescribedZoneKey,
+      currentLog,
+      isCompleted: Boolean(completedDays[currentWorkout.dayNum]),
+      paretoDirective: currentParetoDirective,
+      oneRMs,
+      customPcts,
+      dailyNutrition,
+      roxzoneTargetSec
+    });
+  };
+
+  const getCleanFilenameBase = () => {
+    const cleanAthlete = String(activeAthleteRecord?.name || 'Atleta')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .slice(0, 28);
+    const dayPad = String(currentWorkout.dayNum).padStart(2, '0');
+    return `HYROX_Dia_${dayPad}_${cleanAthlete}_9x16`;
+  };
+
+  const handleOpenPoster9x16Modal = () => {
+    try {
+      const canvas = buildCurrentWorkoutPosterCanvas();
+      if (canvas && typeof canvas.toDataURL === 'function') {
+        setPdfPosterDataUrl(canvas.toDataURL('image/png'));
+      }
+      setPdfActionMessage('');
+      setPdfPosterModalOpen(true);
+    } catch (err) {
+      setPdfActionMessage(`Erro ao preparar pré-visualização 9:16: ${err.message}`);
+      setPdfPosterModalOpen(true);
+    }
+  };
+
+  const handleDownloadWorkoutPdf9x16 = () => {
+    try {
+      const canvas = buildCurrentWorkoutPosterCanvas();
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const pdfBlob = buildPdfBlobFromJpegDataUrl(jpegDataUrl, 1080, 1920);
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      const fileName = `${getCleanFilenameBase()}.pdf`;
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setPdfPosterDataUrl(canvas.toDataURL('image/png'));
+      setPdfActionMessage(`✓ PDF 9:16 (${fileName}) gerado e baixado com sucesso! Pronto para enviar.`);
+    } catch (err) {
+      setPdfActionMessage(`Não foi possível gerar o PDF 9:16 (${err.message}).`);
+    }
+  };
+
+  const handleDownloadWorkoutPng9x16 = () => {
+    try {
+      const canvas = buildCurrentWorkoutPosterCanvas();
+      const pngDataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      const fileName = `${getCleanFilenameBase()}.png`;
+      a.href = pngDataUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setPdfPosterDataUrl(pngDataUrl);
+      setPdfActionMessage(`✓ Imagem/Flyer 9:16 HD (${fileName}) baixado com sucesso!`);
+    } catch (err) {
+      setPdfActionMessage(`Erro ao exportar imagem 9:16 (${err.message}).`);
+    }
+  };
+
+  const buildWhatsAppWorkoutSummaryText = () => {
+    const zKey = currentPrescribedZoneKey === 'REST' ? 'Z1' : currentPrescribedZoneKey;
+    const zSpd = runningZonesKmh[zKey] || runningZonesKmh.Z3 || 12.6;
+    const zPace = kmhToPaceStr(zSpd);
+    const lines = [
+      `🏋️‍♂️ *HYROX PERIODIZAÇÃO • TREINO DO DIA (9:16)*`,
+      `👤 *Aluno/Atleta:* ${activeAthleteRecord?.name || 'Atleta Principal'} (${currentDivision?.name} • ${athleteWeight}kg)`,
+      `📅 *Dia ${currentWorkout.dayNum}/26 (${currentWorkout.date} - ${currentWorkout.weekday}):* ${currentWorkout.type}`,
+      `🏃 *Zona Prescrita:* ${zKey} (${zSpd} km/h • ${zPace}/km) | *GRP Z3:* ${goalPace}/km (${runningZonesKmh.Z3} km/h)`,
+      `⚡ *Foco Pareto 80/20:* ${currentParetoDirective.vital20Focus}`,
+      ``,
+      `📋 *BLOCOS DA SESSÃO:*`
+    ];
+    (currentWorkout.blocks || []).forEach((b, idx) => {
+      lines.push(`*${idx + 1}. ${b.name}:* ${b.details}`);
+      if (b.strengthPrescriptions && b.strengthPrescriptions.length > 0) {
+        const rmList = b.strengthPrescriptions.map((sp) => {
+          const pctKey = `${sp.exId}_d${currentWorkout.dayNum}`;
+          const pct = customPcts[pctKey] !== undefined ? customPcts[pctKey] : sp.defaultPct;
+          const userRM = oneRMs[sp.exId] || 0;
+          return `${sp.name} ${sp.sets} @ ${Math.round(pct * 100)}% = *${Math.round(userRM * pct)}kg*`;
+        });
+        lines.push(`   ↳ _Cargas 1RM:_ ${rmList.join(' | ')}`);
+      }
+    });
+    lines.push(``);
+    lines.push(`🍽️ *Nutrição (${athleteWeight}kg):* Carbo ${dailyNutrition.carbsGrams} | Proteína ${dailyNutrition.proteinGrams}`);
+    lines.push(`📲 *App:* https://hyrox-simulado-26d.web.app`);
+    return lines.join('\n');
+  };
+
+  const handleShareWorkoutPdf9x16 = async () => {
+    try {
+      const canvas = buildCurrentWorkoutPosterCanvas();
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const pdfBlob = buildPdfBlobFromJpegDataUrl(jpegDataUrl, 1080, 1920);
+      const fileName = `${getCleanFilenameBase()}.pdf`;
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      const summaryText = buildWhatsAppWorkoutSummaryText();
+
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            title: `HYROX Dia ${currentWorkout.dayNum} - ${activeAthleteRecord?.name || 'Treino do Dia'}`,
+            text: summaryText,
+            files: [pdfFile]
+          });
+          setPdfActionMessage('✓ PDF 9:16 enviado com sucesso pelo menu de partilha do dispositivo!');
+          return;
+        }
+        await navigator.share({
+          title: `HYROX Dia ${currentWorkout.dayNum} - ${activeAthleteRecord?.name || 'Treino do Dia'}`,
+          text: summaryText
+        });
+        handleDownloadWorkoutPdf9x16();
+        return;
+      }
+
+      // Fallback para Desktop / Browsers sem Web Share API: baixa o PDF 9:16 e abre o WhatsApp Web com o resumo
+      handleDownloadWorkoutPdf9x16();
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      setPdfActionMessage('✓ PDF 9:16 baixado e resumo aberto no WhatsApp para envio imediato!');
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      handleDownloadWorkoutPdf9x16();
+    }
+  };
+
+  const handlePrintVector9x16 = () => {
+    try {
+      const canvas = buildCurrentWorkoutPosterCanvas();
+      const imgUrl = canvas.toDataURL('image/png');
+      const printWin = window.open('', '_blank', 'width=540,height=960');
+      if (!printWin) {
+        handleDownloadWorkoutPdf9x16();
+        return;
+      }
+      printWin.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>${getCleanFilenameBase()}</title>
+  <style>
+    @page { size: 108mm 192mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #020617; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    img { width: 100vw; height: 100vh; object-fit: contain; display: block; }
+  </style>
+</head>
+<body>
+  <img src="${imgUrl}" onload="setTimeout(function(){ window.print(); }, 250);" />
+</body>
+</html>`);
+      printWin.document.close();
+    } catch (_e) {
+      handleDownloadWorkoutPdf9x16();
+    }
+  };
+
   return (
     React.createElement("div", { "className": "min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 md:pb-16" }, React.createElement("header", { "className": "sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl" }, React.createElement("div", { "className": "max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3" }, React.createElement("div", { "className": "flex items-center justify-between" }, React.createElement("div", { "className": "flex items-center gap-3" }, React.createElement("div", { "className": "w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl tracking-tighter shadow-lg shadow-yellow-400/20" }, "HX"), React.createElement("div", null, React.createElement("div", { "className": "flex items-center gap-2" }, React.createElement("h1", { "className": "text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase" }, "HYROX ", React.createElement("span", { "className": "text-yellow-400" }, "Periodização")), React.createElement("span", { "className": "hidden sm:inline-block text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded-full border border-slate-700" }, "10 Nov → 05 Dez")), React.createElement("p", { "className": "text-xs text-slate-400" }, "Arquitetura Endurance-Led, Strength-Protected • 6x/Semana"))), React.createElement("div", { "className": "lg:hidden text-right" }, React.createElement("span", { "className": "text-xs text-slate-400 block" }, "Concluído"), React.createElement("span", { "className": "text-sm font-bold text-yellow-400" }, stats.doneCount, "/", stats.totalDays, " dias (", stats.progressPct, "%)"))), React.createElement("div", { "className": "flex flex-wrap items-center gap-2 sm:gap-3 bg-slate-950/70 p-2 rounded-xl border border-slate-800/80 text-xs" }, React.createElement("div", { "className": "flex items-center gap-1.5" }, React.createElement(Users, { "className": "w-4 h-4 text-purple-400 shrink-0" }), React.createElement("span", { "className": "text-slate-400 hidden sm:inline" }, "Aluno/Atleta:"), React.createElement("select", { "value": activeAthleteId, "onChange": (e) => handleSelectActiveAthlete(e.target.value), "className": "bg-slate-800 text-purple-300 font-bold rounded-lg px-2 py-1 border border-purple-500/40 focus:outline-none focus:border-purple-400 max-w-[180px] truncate", "title": "Selecionar Aluno ou Atleta guardado no Banco de Dados" }, athletesDatabase.map((rec) => (
                   React.createElement("option", { "key": rec.id, "value": rec.id }, rec.name, " (", rec.goalPace, "/km • ", rec.athleteWeight, "kg)")
@@ -3125,7 +3752,7 @@ function App() {
                           }` })
                         )))
                   );
-                }))), React.createElement("div", { "className": `bg-gradient-to-r ${currentMicrocycle.color} rounded-2xl p-4 sm:p-5 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4` }, React.createElement("div", null, React.createElement("div", { "className": "flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-black/25 w-fit px-2.5 py-1 rounded-full mb-1.5" }, React.createElement("span", null, currentMicrocycle.dates)), React.createElement("h2", { "className": "text-lg sm:text-xl font-black" }, currentMicrocycle.title), React.createElement("p", { "className": "text-xs sm:text-sm text-white/90 mt-1 max-w-3xl" }, currentMicrocycle.focus)), React.createElement("div", { "className": "flex items-center gap-3 shrink-0 bg-black/25 p-3 rounded-xl border border-white/15" }, React.createElement("div", { "className": "text-center px-2" }, React.createElement("span", { "className": "text-[11px] uppercase block opacity-80" }, "Volume Rel."), React.createElement("span", { "className": "text-xl font-black" }, currentMicrocycle.volumeRel, "%")), React.createElement("div", { "className": "h-8 w-px bg-white/20" }), React.createElement("div", { "className": "text-center px-2" }, React.createElement("span", { "className": "text-[11px] uppercase block opacity-80" }, "Intensidade"), React.createElement("span", { "className": "text-xl font-black" }, currentMicrocycle.intensitySpec, "%")))), React.createElement("div", { "className": "grid grid-cols-1 lg:grid-cols-3 gap-6" }, React.createElement("div", { "className": "lg:col-span-2 space-y-6" }, React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl" }, React.createElement("div", { "className": "flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800" }, React.createElement("div", null, React.createElement("div", { "className": "flex flex-wrap items-center gap-2 mb-2" }, React.createElement("span", { "className": "text-xs font-extrabold uppercase px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300" }, "Dia ", currentWorkout.dayNum, " de 26 • ", currentWorkout.date, " (", currentWorkout.weekday, ")"), React.createElement("span", { "className": `text-xs font-bold px-2.5 py-1 rounded-lg border ${getCategoryBadge(currentWorkout.category).bg}` }, getCategoryBadge(currentWorkout.category).label)), React.createElement("h3", { "className": "text-xl sm:text-2xl font-black text-white leading-tight" }, currentWorkout.type)), React.createElement("div", { "className": "flex items-center gap-2 shrink-0" }, React.createElement("button", { "onClick": () => setSelectedDayNum((prev) => Math.max(1, prev - 1)), "disabled": selectedDayNum === 1, "className": "p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700", "title": "Dia Anterior" }, React.createElement(ChevronLeft, { "className": "w-5 h-5" })), React.createElement("button", { "onClick": () => toggleDayCompletion(currentWorkout.dayNum), "className": `flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                }))), React.createElement("div", { "className": `bg-gradient-to-r ${currentMicrocycle.color} rounded-2xl p-4 sm:p-5 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4` }, React.createElement("div", null, React.createElement("div", { "className": "flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-black/25 w-fit px-2.5 py-1 rounded-full mb-1.5" }, React.createElement("span", null, currentMicrocycle.dates)), React.createElement("h2", { "className": "text-lg sm:text-xl font-black" }, currentMicrocycle.title), React.createElement("p", { "className": "text-xs sm:text-sm text-white/90 mt-1 max-w-3xl" }, currentMicrocycle.focus)), React.createElement("div", { "className": "flex items-center gap-3 shrink-0 bg-black/25 p-3 rounded-xl border border-white/15" }, React.createElement("div", { "className": "text-center px-2" }, React.createElement("span", { "className": "text-[11px] uppercase block opacity-80" }, "Volume Rel."), React.createElement("span", { "className": "text-xl font-black" }, currentMicrocycle.volumeRel, "%")), React.createElement("div", { "className": "h-8 w-px bg-white/20" }), React.createElement("div", { "className": "text-center px-2" }, React.createElement("span", { "className": "text-[11px] uppercase block opacity-80" }, "Intensidade"), React.createElement("span", { "className": "text-xl font-black" }, currentMicrocycle.intensitySpec, "%")))), React.createElement("div", { "className": "grid grid-cols-1 lg:grid-cols-3 gap-6" }, React.createElement("div", { "className": "lg:col-span-2 space-y-6" }, React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl" }, React.createElement("div", { "className": "flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800" }, React.createElement("div", null, React.createElement("div", { "className": "flex flex-wrap items-center gap-2 mb-2" }, React.createElement("span", { "className": "text-xs font-extrabold uppercase px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300" }, "Dia ", currentWorkout.dayNum, " de 26 • ", currentWorkout.date, " (", currentWorkout.weekday, ")"), React.createElement("span", { "className": `text-xs font-bold px-2.5 py-1 rounded-lg border ${getCategoryBadge(currentWorkout.category).bg}` }, getCategoryBadge(currentWorkout.category).label)), React.createElement("h3", { "className": "text-xl sm:text-2xl font-black text-white leading-tight" }, currentWorkout.type)), React.createElement("div", { "className": "flex flex-wrap items-center gap-2 shrink-0" }, React.createElement("button", { "onClick": handleOpenPoster9x16Modal, "className": "flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-black text-xs sm:text-sm transition-all shadow-md", "title": "Gerar Poster/Flyer e PDF 9:16 do Treino do Dia para enviar ao Aluno/Atleta" }, React.createElement(FileText, { "className": "w-4 h-4 text-cyan-400" }), React.createElement("span", null, "PDF 9:16 • Enviar Treino")), React.createElement("button", { "onClick": () => setSelectedDayNum((prev) => Math.max(1, prev - 1)), "disabled": selectedDayNum === 1, "className": "p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700", "title": "Dia Anterior" }, React.createElement(ChevronLeft, { "className": "w-5 h-5" })), React.createElement("button", { "onClick": () => toggleDayCompletion(currentWorkout.dayNum), "className": `flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
                           completedDays[currentWorkout.dayNum]
                             ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
                             : 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 shadow-lg shadow-yellow-400/20'
@@ -3895,6 +4522,75 @@ function App() {
                   : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
               }` }, syncMessage)
             ), React.createElement("div", { "className": "bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 text-xs space-y-1.5" }, React.createElement("span", { "className": "font-extrabold uppercase text-cyan-400 flex items-center gap-1.5" }, React.createElement(Smartphone, { "className": "w-3.5 h-3.5" }), "Como instalar como App no Telemóvel (Funciona Offline no Ginásio):"), React.createElement("p", { "className": "text-slate-300" }, "• ", React.createElement("strong", null, "Android (Chrome):"), " Toque no menu ", React.createElement("strong", null, "⋮"), " e selecione ", React.createElement("strong", null, "\"Instalar aplicação\""), " ou ", React.createElement("strong", null, "\"Adicionar ao ecrã principal\""), "."), React.createElement("p", { "className": "text-slate-300" }, "• ", React.createElement("strong", null, "iPhone / iOS (Safari):"), " Toque no botão ", React.createElement("strong", null, "Partilhar (↑)"), " na barra inferior e escolha ", React.createElement("strong", null, "\"Adicionar ao ecrã principal\""), "."))))
+      ), pdfPosterModalOpen && (
+        React.createElement("div", { "className": "fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto" }, React.createElement("div", { "className": "bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-6" }, React.createElement("div", { "className": "flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5" }, React.createElement("div", { "className": "flex items-center gap-2.5" }, React.createElement("div", { "className": "w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0" }, React.createElement(FileText, { "className": "w-5 h-5" })), React.createElement("div", null, React.createElement("h3", { "className": "text-base sm:text-lg font-black text-white uppercase" }, "Ficha & Poster 9:16 em PDF • Treino do Dia ", currentWorkout.dayNum, "/26"), React.createElement("p", { "className": "text-xs text-slate-400" }, "Formato vertical ", React.createElement("strong", null, "9:16 (1080×1920 HD / 540×960pt PDF)"), " pronto para enviar no WhatsApp ou abrir no telemóvel do aluno ", React.createElement("strong", null, activeAthleteRecord?.name), "."))), React.createElement("button", { "onClick": () => setPdfPosterModalOpen(false), "className": "p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white" }, React.createElement(X, { "className": "w-4 h-4" }))), pdfActionMessage && (
+              React.createElement("div", { "className": "bg-emerald-500/20 border border-emerald-500/40 rounded-xl p-3 text-xs text-emerald-200 font-bold flex items-center gap-2" }, React.createElement(CheckCircle2, { "className": "w-4 h-4 text-emerald-400 shrink-0" }), React.createElement("span", null, pdfActionMessage))
+            ), React.createElement("div", { "className": "grid grid-cols-1 md:grid-cols-12 gap-5 items-start" }, React.createElement("div", { "className": "md:col-span-6 flex flex-col items-center bg-slate-950 border border-slate-800 rounded-2xl p-3" }, React.createElement("span", { "className": "text-[11px] font-mono uppercase text-cyan-400 font-bold mb-2" }, "Pré-Visualização Real 9:16 (Dia ", currentWorkout.dayNum, " • ", currentWorkout.date, ")"), React.createElement("div", { "className": "w-full max-w-[290px] aspect-[9/16] rounded-xl overflow-hidden border border-slate-700 shadow-2xl bg-slate-950 flex items-center justify-center" }, pdfPosterDataUrl ? (
+                    React.createElement("img", { "src": pdfPosterDataUrl, "alt": `Poster 9:16 Treino do Dia ${currentWorkout.dayNum}`, "className": "w-full h-full object-contain" })
+                  ) : (
+                    React.createElement("span", { "className": "text-xs text-slate-400" }, "A gerar pré-visualização 9:16...")
+                  ))), React.createElement("div", { "className": "md:col-span-6 space-y-4" }, React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3" }, React.createElement("span", { "className": "text-xs font-black uppercase text-yellow-400 block" }, "1. Escolha o Dia ou Aluno para Gerar o PDF 9:16"), React.createElement("div", { "className": "grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs" }, React.createElement("div", null, React.createElement("label", { "className": "text-[11px] text-slate-400 font-bold block mb-1" }, "Dia do Ciclo (1 a 26):"), React.createElement("select", { "value": selectedDayNum, "onChange": (e) => {
+                          const nextD = parseInt(e.target.value, 10) || 1;
+                          setSelectedDayNum(nextD);
+                          setTimeout(() => {
+                            try {
+                              const c = renderWorkoutPoster9x16ToCanvas({
+                                athleteName: activeAthleteRecord?.name || 'Atleta Principal',
+                                athleteRole: activeAthleteRecord?.roleOrCategory || 'Ciclo 26 Dias',
+                                divisionName: currentDivision?.name || 'Men Open',
+                                division: currentDivision,
+                                athleteWeight,
+                                goalPace,
+                                runningZonesKmh,
+                                workout: WORKOUT_DAYS.find((d) => d.dayNum === nextD) || currentWorkout,
+                                microcycle: MICROCYCLES.find((m) => (WORKOUT_DAYS.find((d) => d.dayNum === nextD) || currentWorkout).microcycle === m.id) || currentMicrocycle,
+                                prescribedZoneKey: getDayPrescribedZoneKey(WORKOUT_DAYS.find((d) => d.dayNum === nextD) || currentWorkout),
+                                currentLog: dayLogs[nextD] || {},
+                                isCompleted: Boolean(completedDays[nextD]),
+                                paretoDirective: {
+                                  vital20Focus: (DAILY_PARETO_DIRECTIVES[nextD] || DAILY_PARETO_DIRECTIVES[1]).vital20Focus
+                                },
+                                oneRMs,
+                                customPcts,
+                                dailyNutrition,
+                                roxzoneTargetSec
+                              });
+                              setPdfPosterDataUrl(c.toDataURL('image/png'));
+                            } catch (_err) {}
+                          }, 30);
+                        }, "className": "w-full bg-slate-900 text-white font-bold rounded-lg px-2.5 py-2 border border-slate-700" }, WORKOUT_DAYS.map((d) => (
+                          React.createElement("option", { "key": d.dayNum, "value": d.dayNum }, "Dia ", d.dayNum, " (", d.date, ") - ", d.type.slice(0, 28))
+                        )))), React.createElement("div", null, React.createElement("label", { "className": "text-[11px] text-slate-400 font-bold block mb-1" }, "Aluno / Atleta Ativo:"), React.createElement("select", { "value": activeAthleteId, "onChange": (e) => {
+                          handleSelectActiveAthlete(e.target.value);
+                          setTimeout(() => {
+                            try {
+                              const targetRec = athletesDatabase.find((r) => r.id === e.target.value) || activeAthleteRecord;
+                              const targetDiv = DIVISIONS[targetRec?.divisionKey] || currentDivision;
+                              const c = renderWorkoutPoster9x16ToCanvas({
+                                athleteName: targetRec?.name || 'Atleta Principal',
+                                athleteRole: targetRec?.roleOrCategory || 'Ciclo 26 Dias',
+                                divisionName: targetDiv?.name || 'Men Open',
+                                division: targetDiv,
+                                athleteWeight: targetRec?.athleteWeight || athleteWeight,
+                                goalPace: targetRec?.goalPace || goalPace,
+                                runningZonesKmh: targetRec?.runningZonesKmh || runningZonesKmh,
+                                workout: currentWorkout,
+                                microcycle: currentMicrocycle,
+                                prescribedZoneKey: currentPrescribedZoneKey,
+                                currentLog,
+                                isCompleted: Boolean(completedDays[currentWorkout.dayNum]),
+                                paretoDirective: currentParetoDirective,
+                                oneRMs: targetRec?.oneRMs || oneRMs,
+                                customPcts: targetRec?.customPcts || customPcts,
+                                dailyNutrition,
+                                roxzoneTargetSec: targetRec?.roxzoneTargetSec || roxzoneTargetSec
+                              });
+                              setPdfPosterDataUrl(c.toDataURL('image/png'));
+                            } catch (_err) {}
+                          }, 30);
+                        }, "className": "w-full bg-slate-900 text-purple-300 font-bold rounded-lg px-2.5 py-2 border border-purple-500/40" }, athletesDatabase.map((rec) => (
+                          React.createElement("option", { "key": rec.id, "value": rec.id }, rec.name)
+                        )))))), React.createElement("div", { "className": "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5" }, React.createElement("span", { "className": "text-xs font-black uppercase text-cyan-400 block" }, "2. Baixar ou Enviar PDF 9:16 do Treino do Dia"), React.createElement("button", { "onClick": handleDownloadWorkoutPdf9x16, "className": "w-full py-3 px-4 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/20 transition-all" }, React.createElement(Download, { "className": "w-4 h-4" }), "Baixar PDF 9:16 Agora (.PDF)"), React.createElement("button", { "onClick": handleShareWorkoutPdf9x16, "className": "w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all" }, React.createElement(Share2, { "className": "w-4 h-4" }), "Enviar / Partilhar PDF 9:16 (WhatsApp / Telemóvel)"), React.createElement("div", { "className": "grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1" }, React.createElement("button", { "onClick": handleDownloadWorkoutPng9x16, "className": "py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center justify-center gap-1.5" }, React.createElement(Download, { "className": "w-3.5 h-3.5" }), "Baixar Flyer 9:16 (.PNG HD)"), React.createElement("button", { "onClick": handlePrintVector9x16, "className": "py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center gap-1.5" }, React.createElement(FileText, { "className": "w-3.5 h-3.5 text-yellow-400" }), "Imprimir / Guardar 9:16"))), React.createElement("div", { "className": "bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-300 space-y-1" }, React.createElement("span", { "className": "font-bold text-white block" }, "✓ O que vai incluído no PDF 9:16:"), React.createElement("p", { "className": "text-[11px] text-slate-400" }, "• Identificação do Aluno/Atleta (", activeAthleteRecord?.name, "), Divisão (", currentDivision?.name, "), Peso (", athleteWeight, "kg) e Zonas de Corrida (`km/h` e `/km`);"), React.createElement("p", { "className": "text-[11px] text-slate-400" }, "• Todos os blocos detalhados do Dia ", currentWorkout.dayNum, ", Cargas de Força calculadas pelos `1RMs`, Pesos Oficiais da Divisão, Foco Pareto 80/20 e Nutrição Diária."))))))
       ))
   );
 }
