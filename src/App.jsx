@@ -173,19 +173,19 @@ const WORKOUT_DAYS = [
     targetRPE: '16-17 (Borg) | Cargas 100% RW',
     nutritionType: 'HIGH',
     blocks: [
-      { name: 'Aquecimento', details: '10 min mobilidade de anca/tornozelo + ativação glútea.' },
+      { name: 'Aquecimento', details: '10 min mobilidade de quadril/tornozelo + ativação glútea.' },
       { 
         name: 'Força Base', 
         details: 'Back Squat ou Front Squat 4 x 8 reps (descanso 2 min) + Romanian Deadlift (RDL) 4 x 10 reps.',
         strengthPrescriptions: [
           { exId: 'backSquat', name: 'Back Squat (Barra Costas)', defaultPct: 0.775, sets: '4 x 8 reps (Opção A)', targetRIR: 'RIR 2 (Piso de Força)' },
           { exId: 'frontSquat', name: 'Front Squat (Barra Frente - 70% do Back Squat)', defaultPct: 0.70, sets: '4 x 8 reps (Opção B - Tronco Vertical)', targetRIR: 'RIR 2 (70% do 1RM Back Squat)' },
-          { exId: 'rdl', name: 'Romanian Deadlift (RDL)', defaultPct: 0.725, sets: '4 x 10 reps', targetRIR: 'RIR 2 (Controlo Excêntrico)' }
+          { exId: 'rdl', name: 'Romanian Deadlift (RDL)', defaultPct: 0.725, sets: '4 x 10 reps', targetRIR: 'RIR 2 (Controle Excêntrico)' }
         ]
       },
-      { name: 'Especificidade de Trenós (4 Rondas)', details: '25 m Sled Push (100% RW) + 25 m Sled Pull (100% RW) + 100 m Farmer\'s Carry (100% RW). Descanso de 2 min entre rondas.', usesRW: ['sledPush', 'sledPull', 'farmersCarry'], overload: 1.0 }
+      { name: 'Especificidade de Trenós (4 Rounds)', details: '25 m Sled Push (100% RW) + 25 m Sled Pull (100% RW) + 100 m Farmer\'s Carry (100% RW). Descanso de 2 min entre rounds.', usesRW: ['sledPush', 'sledPull', 'farmersCarry'], overload: 1.0 }
     ],
-    coachTip: 'A ausência de um "piso de força" (strength floor) impõe penalizações severas. Mantenha um ângulo corporal baixo no Sled Push e evite paragens intermédias.'
+    coachTip: 'A ausência de um "piso de força" (strength floor) impõe penalizações severas. Mantenha um ângulo corporal baixo no Sled Push e evite paradas intermediárias.'
   },
   {
     dayNum: 2,
@@ -202,7 +202,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'LOW',
     blocks: [
       { name: 'Corrida Contínua', details: '45 minutos em terreno plano a ritmo estritamente conversacional (Zona 2).' },
-      { name: 'Trabalho Complementar', details: '15 min de libertação miofascial (foam rolling) e mobilidade torácica e flexores da anca.' }
+      { name: 'Trabalho Complementar', details: '15 min de liberação miofascial (foam rolling) e mobilidade torácica e flexores do quadril.' }
     ],
     coachTip: 'Ponte regenerativa obrigatória. O trabalho conversacional sem picos de esforço promove a capilarização e acelera a remoção de subprodutos metabólicos para quinta-feira.'
   },
@@ -221,17 +221,17 @@ const WORKOUT_DAYS = [
     nutritionType: 'HIGH',
     blocks: [
       { name: 'Aquecimento', details: '1,5 km trote leve + educativos de corrida.' },
-      { name: 'Bloco Principal (5 Rondas)', details: '800 m de corrida ao ritmo alvo de prova (Goal Race Pace - GRP) imediatamente seguido de uma estação por ronda:\n• Ronda 1: 500 m SkiErg\n• Ronda 2: 20 m Burpee Broad Jumps\n• Ronda 3: 500 m Row\n• Ronda 4: 40 m Sandbag Lunges (100% RW)\n• Ronda 5: 30 Wall Balls (100% RW)', usesRW: ['sandbagLunges', 'wallBalls'], overload: 1.0 },
-      { name: 'Recuperação', details: '90 segundos de trote/caminhada ativa entre rondas.' }
+      { name: 'Bloco Principal (5 Rounds)', details: '800 m de corrida ao ritmo alvo de prova (Goal Race Pace - GRP) imediatamente seguido de uma estação por round:\n• Round 1: 500 m SkiErg\n• Round 2: 20 m Burpee Broad Jumps\n• Round 3: 500 m Row\n• Round 4: 40 m Sandbag Lunges (100% RW)\n• Round 5: 30 Wall Balls (100% RW)', usesRW: ['sandbagLunges', 'wallBalls'], overload: 1.0 },
+      { name: 'Recuperação', details: '90 segundos de trote/caminhada ativa entre rounds.' }
     ],
-    coachTip: 'Na corrida sob fadiga, combata o encurtamento excessivo da passada e o overstriding. Foque na extensão da anca e reciclagem de lactato nos primeiros 200m.'
+    coachTip: 'Na corrida sob fadiga, combata o encurtamento excessivo da passada e o overstriding. Foque na extensão do quadril e reciclagem de lactato nos primeiros 200m.'
   },
   {
     dayNum: 4,
     date: '13/11',
     weekday: 'Sexta-feira',
     microcycle: 1,
-    type: 'Limiar em Ergómetros & Resistência de Ombros',
+    type: 'Limiar em Ergômetros & Resistência de Ombros',
     category: 'ERG_CAPACITY',
     loadIndex: 6,
     durationMin: 50,
@@ -240,7 +240,7 @@ const WORKOUT_DAYS = [
     targetRPE: '15 (Borg)',
     nutritionType: 'MODERATE',
     blocks: [
-      { name: 'Condicionamento Sem Impacto (EMOM 24 min - 6 Rondas)', details: '• Minuto 1: 12-15 cal SkiErg\n• Minuto 2: 15 Wall Balls (foco na cadência e respiração)\n• Minuto 3: 12-15 cal Row\n• Minuto 4: Descanso ativo.', usesRW: ['wallBalls'], overload: 1.0 },
+      { name: 'Condicionamento Sem Impacto (EMOM 24 min - 6 Rounds)', details: '• Minuto 1: 12-15 cal SkiErg\n• Minuto 2: 15 Wall Balls (foco na cadência e respiração)\n• Minuto 3: 12-15 cal Row\n• Minuto 4: Descanso ativo.', usesRW: ['wallBalls'], overload: 1.0 },
       { name: 'Estabilidade do Core', details: '3 séries de Plank Pull-Throughs (20 reps) + Hollow Body Rocks (45 s).' }
     ],
     coachTip: 'Mantém o estímulo metabólico aeróbico elevado enquanto retira carga de impacto excêntrico dos tornozelos e joelhos antes da simulação de sábado.'
@@ -261,7 +261,7 @@ const WORKOUT_DAYS = [
     blocks: [
       { name: 'Execução Contínua Cronometrada (50% do volume na ordem oficial)', details: '1. 1 km Corrida -> 500 m SkiErg\n2. 1 km Corrida -> 25 m Sled Push (100% RW)\n3. 1 km Corrida -> 25 m Sled Pull (100% RW)\n4. 1 km Corrida -> 40 m Burpee Broad Jumps -> 500 m Row -> 100 m Farmer\'s Carry -> 50 m Sandbag Lunges -> 50 Wall Balls.', usesRW: ['sledPush', 'sledPull', 'farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
     ],
-    coachTip: 'Utilize géis isotónicos intra-treino (30 a 45g carbo/hora). Pratique o protocolo dos 3 passos ao sair de cada estação.'
+    coachTip: 'Utilize géis isotônicos intra-treino (30 a 45g carbo/hora). Pratique o protocolo dos 3 passos ao sair de cada estação.'
   },
   {
     dayNum: 6,
@@ -298,7 +298,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'HIGH',
     blocks: [
       { name: 'Aquecimento', details: '2 km em Zona 1-2 + educativos de técnica de corrida.' },
-      { name: 'Série Principal (6 x 1.000 m)', details: 'Em pista ou passadeira com 90 segundos de recuperação em trote leve entre repetições:\n• Primeiros 4 intervalos: 5 a 8 segundos/km mais rápidos que o ritmo alvo do HYROX.\n• Últimos 2 intervalos: cravados ao ritmo de 10 km.' },
+      { name: 'Série Principal (6 x 1.000 m)', details: 'Em pista ou esteira com 90 segundos de recuperação em trote leve entre repetições:\n• Primeiros 4 intervalos: 5 a 8 segundos/km mais rápidos que o ritmo alvo do HYROX.\n• Últimos 2 intervalos: cravados ao ritmo de 10 km.' },
       { name: 'Retorno à Calma', details: '1 km trote regenerativo.' }
     ],
     coachTip: 'Aproveite a frescura do SNC pós-descanso para desenvolver velocidade pura e potência aeróbica (VO2máx tem correlação de r = -0,71 com o tempo final).'
@@ -325,8 +325,8 @@ const WORKOUT_DAYS = [
           { exId: 'barbellWalkingLunges', name: 'Heavy Barbell Walking Lunges', defaultPct: 0.725, sets: '3 x 16 passadas', targetRIR: 'Sobrecarga Específica p/ Sandbag' }
         ]
       },
-      { name: 'Sobrecarga de Trenós (Overload - 5 Rondas)', details: '25 m Sled Push (com +10% a +15% ACIMA do peso oficial de prova) + 25 m Sled Pull (peso oficial 100% RW, focando na velocidade de transição na caixa), com 90 s de descanso entre séries.', usesRW: ['sledPush', 'sledPull'], overload: 1.125 },
-      { name: 'Preensão Isométrica', details: '3 x 100 m Farmer\'s Carry pesado sem pousar os kettlebells.', usesRW: ['farmersCarry'], overload: 1.0 }
+      { name: 'Sobrecarga de Trenós (Overload - 5 Rounds)', details: '25 m Sled Push (com +10% a +15% ACIMA do peso oficial de prova) + 25 m Sled Pull (peso oficial 100% RW, focando na velocidade de transição na caixa), com 90 s de descanso entre séries.', usesRW: ['sledPush', 'sledPull'], overload: 1.125 },
+      { name: 'Preensão Isométrica', details: '3 x 100 m Farmer\'s Carry pesado sem soltar os kettlebells no chão.', usesRW: ['farmersCarry'], overload: 1.0 }
     ],
     coachTip: 'Treinar o Sled Push acima do peso de prova faz com que a carga oficial no dia 5 de dezembro pareça mecanicamente mais leve, protegendo suas pernas.'
   },
@@ -344,7 +344,7 @@ const WORKOUT_DAYS = [
     targetRPE: '11-12 (Borg)',
     nutritionType: 'LOW',
     blocks: [
-      { name: 'Corrida Contínua', details: '50 minutos suaves em superfície macia ou passadeira, mantendo a cadência controlada para reduzir forças de travagem.' },
+      { name: 'Corrida Contínua', details: '50 minutos suaves em superfície macia ou esteira, mantendo a cadência controlada para reduzir forças de frenagem.' },
       { name: 'Mobilidade', details: '15 min de alongamento dinâmico da cadeia posterior e tornozelos.' }
     ],
     coachTip: 'Não ceda à tentação de acelerar. Hoje o foco é depuração ativa e preparação para o treino severo de corrida comprometida de amanhã.'
@@ -364,7 +364,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'HIGH',
     blocks: [
       { name: 'Aquecimento', details: '1,5 km trote leve.' },
-      { name: 'Circuito de Interferência Direta (4 Rondas Contínuas)', details: '• 400 m Corrida ao ritmo de prova\n• 50 m Farmer\'s Carry (100% RW)\n• 50 m Sandbag Lunges (100% RW, em blocos de 10 passadas com 2 respirações no topo)\n• 600 m Corrida Imediata ao ritmo de prova (foco na recuperação da passada nos primeiros 150 m).\n• Descanso: 2 minutos entre rondas.', usesRW: ['farmersCarry', 'sandbagLunges'], overload: 1.0 }
+      { name: 'Circuito de Interferência Direta (4 Rounds Contínuas)', details: '• 400 m Corrida ao ritmo de prova\n• 50 m Farmer\'s Carry (100% RW)\n• 50 m Sandbag Lunges (100% RW, em blocos de 10 passadas com 2 respirações no topo)\n• 600 m Corrida Imediata ao ritmo de prova (foco na recuperação da passada nos primeiros 150 m).\n• Descanso: 2 minutos entre rounds.', usesRW: ['farmersCarry', 'sandbagLunges'], overload: 1.0 }
     ],
     coachTip: 'Nos Lunges, mantenha o saco alto nos trapézios (nunca na cervical), puxe os cotovelos para baixo e garanta o toque claro do joelho no solo sem dar passos de ajuste (shuffles).'
   },
@@ -373,19 +373,19 @@ const WORKOUT_DAYS = [
     date: '20/11',
     weekday: 'Sexta-feira',
     microcycle: 2,
-    type: 'Capacidade de Ergómetros & Eficiência em Burpees',
+    type: 'Capacidade de Ergômetros & Eficiência em Burpees',
     category: 'ERG_CAPACITY',
     loadIndex: 6,
     durationMin: 60,
-    volumeDesc: '60 min (6.000 m de ergómetros + 80 m BBJ)',
+    volumeDesc: '60 min (6.000 m de ergômetros + 80 m BBJ)',
     targetZone: 'Zona 3-4 (84-88% FCmáx)',
     targetRPE: '15-16 (Borg)',
     nutritionType: 'MODERATE',
     blocks: [
-      { name: 'Bloco de Pacing nos Ergómetros (3 Séries)', details: '1.000 m SkiErg ao ritmo exato de prova + 60 s descanso + 1.000 m Row ao ritmo exato de prova + 2 min descanso.' },
+      { name: 'Bloco de Pacing nos Ergômetros (3 Séries)', details: '1.000 m SkiErg ao ritmo exato de prova + 60 s descanso + 1.000 m Row ao ritmo exato de prova + 2 min descanso.' },
       { name: 'Técnica Sob Fadiga (4 Séries)', details: '20 m Burpee Broad Jumps focando na colocação das mãos junto aos pés, base larga ao levantar e salto horizontal controlado (descanso 60 s).' }
     ],
-    coachTip: 'SkiErg e Row são estações de controlo de ritmo (pacing stations), não de ataque. Nos Burpees, exale no fundo de cada repetição.'
+    coachTip: 'SkiErg e Row são estações de controle de ritmo (pacing stations), não de ataque. Nos Burpees, exale no fundo de cada repetição.'
   },
   {
     dayNum: 12,
@@ -401,9 +401,9 @@ const WORKOUT_DAYS = [
     targetRPE: '18-19 (Borg - Ápice do Ciclo)',
     nutritionType: 'HIGH',
     blocks: [
-      { name: 'Sequência Contínua de 6 Estações Completas', details: '1. 1 km Corrida + 1.000 m SkiErg\n2. 1 km Corrida + 50 m Sled Push (100% RW)\n3. 1 km Corrida + 50 m Sled Pull (100% RW)\n4. 1 km Corrida + 80 m Burpee Broad Jumps\n5. 1 km Corrida + 100 m Sandbag Lunges (100% RW)\n6. 1 km Corrida + 100 Wall Balls (100% RW, testando quebra planeada: 25-20-15-15-15-10).\n*(Nota: Omitir Remo e Farmer\'s Carry para limitar a sessão a ~70-75 min a 14 dias do teste)*', usesRW: ['sledPush', 'sledPull', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
+      { name: 'Sequência Contínua de 6 Estações Completas', details: '1. 1 km Corrida + 1.000 m SkiErg\n2. 1 km Corrida + 50 m Sled Push (100% RW)\n3. 1 km Corrida + 50 m Sled Pull (100% RW)\n4. 1 km Corrida + 80 m Burpee Broad Jumps\n5. 1 km Corrida + 100 m Sandbag Lunges (100% RW)\n6. 1 km Corrida + 100 Wall Balls (100% RW, testando quebra planejada: 25-20-15-15-15-10).\n*(Nota: Omitir Remo e Farmer\'s Carry para limitar a sessão a ~70-75 min a 14 dias do teste)*', usesRW: ['sledPush', 'sledPull', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
     ],
-    coachTip: 'Este é o treino mais exigente dos 26 dias! Nos Wall Balls, apoie as mãos na bola contra a parede durante as 5 respirações de pausa — não pouse a bola no chão.'
+    coachTip: 'Este é o treino mais exigente dos 26 dias! Nos Wall Balls, apoie as mãos na bola contra a parede durante as 5 respirações de pausa — não solte no chão a bola no chão.'
   },
   {
     dayNum: 13,
@@ -419,7 +419,7 @@ const WORKOUT_DAYS = [
     targetRPE: '6 (Repouso)',
     nutritionType: 'LOW',
     blocks: [
-      { name: 'Supercompensação Inicial', details: 'Recuperação total, reposição agressiva de glicogénio muscular e sono profundo. Fim da fase de sobrecarga máxima.' }
+      { name: 'Supercompensação Inicial', details: 'Recuperação total, reposição agressiva de glicogênio muscular e sono profundo. Fim da fase de sobrecarga máxima.' }
     ],
     coachTip: 'A partir de amanhã entramos na janela de 14 dias de redução progressiva de fadiga (pré-polimento).'
   },
@@ -430,7 +430,7 @@ const WORKOUT_DAYS = [
     date: '23/11',
     weekday: 'Segunda-feira',
     microcycle: 3,
-    type: 'Ritmo de Prova & Controlo de Limiar',
+    type: 'Ritmo de Prova & Controle de Limiar',
     category: 'SPEED',
     loadIndex: 7,
     durationMin: 50,
@@ -440,7 +440,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'HIGH',
     blocks: [
       { name: 'Aquecimento', details: '1,5 km trote leve.' },
-      { name: 'Calibração de Pace (5 x 1.000 m)', details: 'Cravados no ritmo alvo de prova (Goal Race Pace), com apenas 60 segundos de trote na Roxzone simulada entre séries para consolidar a perceção cinestésica do ritmo.' },
+      { name: 'Calibração de Pace (5 x 1.000 m)', details: 'Cravados no ritmo alvo de prova (Goal Race Pace), com apenas 60 segundos de trote na Roxzone simulada entre séries para consolidar a percepção cinestésica do ritmo.' },
       { name: 'Retorno à Calma', details: '1 km trote leve.' }
     ],
     coachTip: 'Os atletas Top 10% mantêm as corridas intermédias (Corrida 3 à 7) dentro de uma margem estreita de apenas 10 segundos de variação.'
@@ -486,7 +486,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'LOW',
     blocks: [
       { name: 'Corrida Zona 2', details: '35 minutos fáceis e fluidos.' },
-      { name: 'Libertação e Articulações', details: '15 minutos focados na dorsiflexão do tornozelo, extensão da anca e abertura peitoral/ombros.' }
+      { name: 'Liberação e Articulações', details: '15 minutos focados na dorsiflexão do tornozelo, extensão do quadril e abertura peitoral/ombros.' }
     ],
     coachTip: 'A rigidez articular elástica do tornozelo (RSI) depende de tendões recuperados e boa amplitude de dorsiflexão.'
   },
@@ -505,7 +505,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'HIGH',
     blocks: [
       { name: 'Aquecimento', details: '1 km leve.' },
-      { name: 'Transições de Alta Precisão (4 Rondas)', details: '1.000 m Corrida a ritmo de prova -> Transição máxima de 15 segundos -> Estação curta:\n• Ronda 1: 150 m Farmer\'s Carry\n• Ronda 2: 30 Sandbag Lunges\n• Ronda 3: 20 Burpee Broad Jumps\n• Ronda 4: 40 Wall Balls\n-> Saída imediata em trote de 400 m no limiar para treinar o ajuste respiratório nos primeiros 10 metros pós-estação (2 min descanso entre rondas).', usesRW: ['farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
+      { name: 'Transições de Alta Precisão (4 Rounds)', details: '1.000 m Corrida a ritmo de prova -> Transição máxima de 15 segundos -> Estação curta:\n• Round 1: 150 m Farmer\'s Carry\n• Round 2: 30 Sandbag Lunges\n• Round 3: 20 Burpee Broad Jumps\n• Round 4: 40 Wall Balls\n-> Saída imediata em trote de 400 m no limiar para treinar o ajuste respiratório nos primeiros 10 metros pós-estação (2 min descanso entre rounds).', usesRW: ['farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
     ],
     coachTip: 'A Roxzone separa os 10% mais rápidos (5m21s) dos 10% mais lentos (11m25s). Nunca trate a saída da estação como zona de descanso passivo!'
   },
@@ -514,7 +514,7 @@ const WORKOUT_DAYS = [
     date: '27/11',
     weekday: 'Sexta-feira',
     microcycle: 3,
-    type: 'Polimento de Ergómetros & Cadência',
+    type: 'Polimento de Ergômetros & Cadência',
     category: 'ERG_CAPACITY',
     loadIndex: 5,
     durationMin: 45,
@@ -523,10 +523,10 @@ const WORKOUT_DAYS = [
     targetRPE: '13-14 (Borg)',
     nutritionType: 'MODERATE',
     blocks: [
-      { name: 'Rotação Multi-Ergómetro (3 Rondas Contínuas)', details: '5 min Bike fácil + 500 m SkiErg a ritmo de prova + 5 min Row fácil + 500 m Row a ritmo de prova.' },
+      { name: 'Rotação Multi-Ergômetro (3 Rounds Contínuas)', details: '5 min Bike fácil + 500 m SkiErg a ritmo de prova + 5 min Row fácil + 500 m Row a ritmo de prova.' },
       { name: 'Ativação de Wall Balls', details: '3 x 20 repetições perfeitas, recebendo a bola no fundo do agachamento para aproveitar o ciclo alongamento-encurtamento.', usesRW: ['wallBalls'], overload: 1.0 }
     ],
-    coachTip: 'No Remo, estabilize numa cadência económica de 24 a 28 s/m. Nos Wall Balls, garanta a prega da anca abaixo da linha do joelho para zero no-reps.'
+    coachTip: 'No Remo, estabilize numa cadência económica de 24 a 28 s/m. Nos Wall Balls, garanta a dobra do quadril abaixo da linha do joelho para zero no-reps.'
   },
   {
     dayNum: 19,
@@ -542,7 +542,7 @@ const WORKOUT_DAYS = [
     targetRPE: '16 (Terminar com reserva)',
     nutritionType: 'HIGH',
     blocks: [
-      { name: 'Ensaio Rápido a 7 Dias do Simulado (3 Rondas Contínuas)', details: '1.000 m Corrida a ritmo exato do Simulado seguido de estação combinada:\n• Ronda 1: 500 m SkiErg + 25 m Sled Push (100% RW)\n• Ronda 2: 500 m Row + 100 m Farmer\'s Carry (100% RW)\n• Ronda 3: 40 m Sandbag Lunges (100% RW) + 40 Wall Balls (100% RW).\n*(Importante: Terminar com reserva, sem ir à falha muscular)*', usesRW: ['sledPush', 'farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
+      { name: 'Ensaio Rápido a 7 Dias do Simulado (3 Rounds Contínuas)', details: '1.000 m Corrida a ritmo exato do Simulado seguido de estação combinada:\n• Round 1: 500 m SkiErg + 25 m Sled Push (100% RW)\n• Round 2: 500 m Row + 100 m Farmer\'s Carry (100% RW)\n• Round 3: 40 m Sandbag Lunges (100% RW) + 40 Wall Balls (100% RW).\n*(Importante: Terminar com reserva, sem ir à falha muscular)*', usesRW: ['sledPush', 'farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
     ],
     coachTip: 'Estamos a 7 dias do simulado. O objetivo hoje é sentir o ritmo de prova fácil e controlado, sem esgotar as reservas.'
   },
@@ -560,7 +560,7 @@ const WORKOUT_DAYS = [
     targetRPE: '6 (Repouso)',
     nutritionType: 'LOW',
     blocks: [
-      { name: 'Início da Semana de Tapering', details: 'Repouso total, início da otimização das reservas de glicogénio e sono reparador.' }
+      { name: 'Início da Semana de Tapering', details: 'Repouso total, início da otimização das reservas de glicogênio e sono reparador.' }
     ],
     coachTip: 'A partir de amanhã o volume cai 55% face ao pico. Qualquer tentativa de compensar treinos agora só gerará DOMS e fadiga residual.'
   },
@@ -608,9 +608,9 @@ const WORKOUT_DAYS = [
     targetRPE: '11 (Borg)',
     nutritionType: 'LOW',
     blocks: [
-      { name: 'Sessão Contínua de Fluxo Sanguíneo (2 Rondas)', details: '5 min Bike + 5 min SkiErg técnico + 5 min Row técnico + 5 min Corrida fácil, focando na economia de movimento, relaxamento dos ombros e respiração controlada.' }
+      { name: 'Sessão Contínua de Fluxo Sanguíneo (2 Rounds)', details: '5 min Bike + 5 min SkiErg técnico + 5 min Row técnico + 5 min Corrida fácil, focando na economia de movimento, relaxamento dos ombros e respiração controlada.' }
     ],
-    coachTip: 'Mantenha os ombros relaxados e foque na eficiência mecânica do grande dorsal e da extensão da anca.'
+    coachTip: 'Mantenha os ombros relaxados e foque na eficiência mecânica do grande dorsal e da extensão do quadril.'
   },
   {
     dayNum: 23,
@@ -645,7 +645,7 @@ const WORKOUT_DAYS = [
     targetRPE: '9-10 (Borg)',
     nutritionType: 'CARB_LOAD',
     blocks: [
-      { name: 'Protocolo Regenerativo', details: '25 minutos de caminhada leve ao ar livre + 15 minutos de mobilidade suave da anca, coluna torácica e tornozelos (ou descanso completo caso exista qualquer sinal de rigidez muscular residual).' }
+      { name: 'Protocolo Regenerativo', details: '25 minutos de caminhada leve ao ar livre + 15 minutos de mobilidade suave da quadril, coluna torácica e tornozelos (ou descanso completo caso exista qualquer sinal de rigidez muscular residual).' }
     ],
     coachTip: 'INÍCIO DO CARB-LOADING (Últimas 48h): Suba para 6 a 8 g/kg de carboidratos limpos (arroz branco, massa, fruta) e reduza fibras insolúveis e gorduras.'
   },
@@ -664,8 +664,8 @@ const WORKOUT_DAYS = [
     nutritionType: 'CARB_LOAD',
     blocks: [
       { name: 'Trote de Desbloqueio', details: '12 a 15 minutos de corrida extremamente leve em Zona 1.' },
-      { name: 'Retas de Ativação (Strides)', details: '3 x 80 metros de aceleração progressiva fluida (com retorno a passo) para manter a reatividade tendinosa sem gastar glicogénio.' },
-      { name: 'Protocolo de Véspera', details: 'Hidratação controlada com cápsulas de sais ou bebida isotónica e jantar rico em hidratos de carbono de fácil digestão.' }
+      { name: 'Retas de Ativação (Strides)', details: '3 x 80 metros de aceleração progressiva fluida (com retorno a passo) para manter a reatividade tendinosa sem gastar glicogênio.' },
+      { name: 'Protocolo de Véspera', details: 'Hidratação controlada com cápsulas de sais ou bebida isotónica e jantar rico em carboidratos de fácil digestão.' }
     ],
     coachTip: 'Proibido testar suplementos novos hoje! Elimine frituras, laticínios pesados e fibras insolúveis para zero desconforto gastrointestinal amanhã.'
   },
@@ -684,7 +684,7 @@ const WORKOUT_DAYS = [
     nutritionType: 'RACE_DAY',
     blocks: [
       { name: 'Aquecimento Oficial (30 min antes da largada)', details: '8 min trote progressivo + mobilidade dinâmica + Priming Metabólico (250 m SkiErg/Row forte + 5 Burpees + 8 Wall Balls + 2 x 100 m ao ritmo da Corrida 1).' },
-      { name: 'Execução da Prova Completa (Ordem Fixa Oficial)', details: '1. Corrida 1 km (10-20s mais lento que o ritmo médio alvo!)\n2. Estação 1: SkiErg (1.000 m)\n3. Corrida 1 km\n4. Estação 2: Sled Push (50 m)\n5. Corrida 1 km\n6. Estação 3: Sled Pull (50 m)\n7. Corrida 1 km\n8. Estação 4: Burpee Broad Jumps (80 m)\n9. Corrida 1 km (Ponto crítico: manter cadência!)\n10. Estação 5: Rowing (1.000 m - estabilizar ventilação)\n11. Corrida 1 km\n12. Estação 6: Farmer\'s Carry (200 m)\n13. Corrida 1 km\n14. Estação 7: Sandbag Lunges (100 m - sem pousar o saco!)\n15. Corrida 1 km\n16. Estação 8: Wall Balls (100 repetições - quebra planeada!)', usesRW: ['sledPush', 'sledPull', 'farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
+      { name: 'Execução da Prova Completa (Ordem Fixa Oficial)', details: '1. Corrida 1 km (10-20s mais lento que o ritmo médio alvo!)\n2. Estação 1: SkiErg (1.000 m)\n3. Corrida 1 km\n4. Estação 2: Sled Push (50 m)\n5. Corrida 1 km\n6. Estação 3: Sled Pull (50 m)\n7. Corrida 1 km\n8. Estação 4: Burpee Broad Jumps (80 m)\n9. Corrida 1 km (Ponto crítico: manter cadência!)\n10. Estação 5: Rowing (1.000 m - estabilizar ventilação)\n11. Corrida 1 km\n12. Estação 6: Farmer\'s Carry (200 m)\n13. Corrida 1 km\n14. Estação 7: Sandbag Lunges (100 m - sem soltar o saco no chão!)\n15. Corrida 1 km\n16. Estação 8: Wall Balls (100 repetições - quebra planejada!)', usesRW: ['sledPush', 'sledPull', 'farmersCarry', 'sandbagLunges', 'wallBalls'], overload: 1.0 }
     ],
     coachTip: 'REGRA DE OURO: Contenha a adrenalina no 1.º km (faça 10-20s mais lento que a meta). Na Roxzone, dê apenas 3 passos respirando fundo e volte imediatamente a trotar!'
   }
@@ -695,9 +695,9 @@ const OFFICIAL_STATIONS_STRATEGY = [
     order: 1,
     name: 'SkiErg',
     volume: '1.000 m',
-    role: 'Estação de Controlo (Pacing)',
-    limitingFactor: 'Extensão da anca e grande dorsal; risco elevado de hiperventilação precoce.',
-    tactics: 'Iniciar a 80% da capacidade nos primeiros 100m. Usar cadência longa apoiada na flexão do tronco e grande dorsal (poupar tricípites). Nos últimos 50m, reduzir solicitação das pernas para preparar a Corrida 2.',
+    role: 'Estação de Controle (Pacing)',
+    limitingFactor: 'Extensão da quadril e grande dorsal; risco elevado de hiperventilação precoce.',
+    tactics: 'Iniciar a 80% da capacidade nos primeiros 100m. Usar cadência longa apoiada na flexão do tronco e grande dorsal (poupar tríceps). Nos últimos 50m, reduzir solicitação das pernas para preparar a Corrida 2.',
     lactateImpact: 'Moderado (se controlado)'
   },
   {
@@ -705,8 +705,8 @@ const OFFICIAL_STATIONS_STRATEGY = [
     name: 'Sled Push',
     volume: '50 m (4 x 12,5 m)',
     role: 'Sobrecarga Glicolítica Local',
-    limitingFactor: 'Força de extensão de joelho/anca e atrito do tapete; paragens custam inércia.',
-    tactics: 'Ângulo corporal baixo, braços bloqueados ou juntos ao tronco, passos curtos e constantes. Evitar paragens a meio da pista (vencer o atrito estático custa o dobro da força). Descansar apenas nas viragens de 12,5m.',
+    limitingFactor: 'Força de extensão de joelho/quadril e atrito do tapete; paradas custam inércia.',
+    tactics: 'Ângulo corporal baixo, braços bloqueados ou juntos ao tronco, passos curtos e constantes. Evitar paradas a meio da pista (vencer o atrito estático custa o dobro da força). Descansar apenas nas viradas de 12,5m.',
     lactateImpact: 'Muito Alto (Mediana: 128s)'
   },
   {
@@ -724,7 +724,7 @@ const OFFICIAL_STATIONS_STRATEGY = [
     volume: '80 m',
     role: 'Estação Decisiva (Scoring)',
     limitingFactor: 'Potência horizontal e maior pico cardiovascular da 1.ª metade.',
-    tactics: 'Colocar os pés junto às mãos em base larga ao levantar do solo (poupa lombar e flexores da anca). Executar saltos horizontais moderados e consistentes em séries mentais de 10 reps, exalando no fundo.',
+    tactics: 'Colocar os pés junto às mãos em base larga ao levantar do solo (poupa lombar e flexores do quadril). Executar saltos horizontais moderados e consistentes em séries mentais de 10 reps, exalando no fundo.',
     lactateImpact: 'Severo + Pico Cardíaco'
   },
   {
@@ -742,7 +742,7 @@ const OFFICIAL_STATIONS_STRATEGY = [
     volume: '200 m',
     role: 'Resistência Isométrica',
     limitingFactor: 'Antebraço, trapézio superior e estabilidade do core em marcha rápida.',
-    tactics: 'Postura alta com escápulas retraídas para facilitar expansão pulmonar. Marcha rápida e curta sem correr em salto (evita oscilação dos kettlebells). No máximo 1 paragem rápida aos 100m se o grip falhar.',
+    tactics: 'Postura alta com escápulas retraídas para facilitar expansão pulmonar. Marcha rápida e curta sem correr em salto (evita oscilação dos kettlebells). No máximo 1 parada rápida aos 100m se o grip falhar.',
     lactateImpact: 'Alto (Fadiga de Grip)'
   },
   {
@@ -750,8 +750,8 @@ const OFFICIAL_STATIONS_STRATEGY = [
     name: 'Sandbag Lunges',
     volume: '100 m',
     role: 'Estação Crítica de Sobrevivência',
-    limitingFactor: 'Força unilateral de quadricípite/glúteo; proibido pousar o saco (penalização 15s / DQ).',
-    tactics: 'Saco alto nos trapézios (nunca na cervical), cotovelos puxados para baixo. Toque claro do joelho no solo e extensão completa da anca sem passos intermédios (shuffles). Fazer micro-pausa no topo a cada 10-15 reps (2 respirações).',
+    limitingFactor: 'Força unilateral de quadríceps/glúteo; proibido soltar o saco no chão (penalização 15s / DQ).',
+    tactics: 'Saco alto nos trapézios (nunca na cervical), cotovelos puxados para baixo. Toque claro do joelho no solo e extensão completa da quadril sem passos intermédios (shuffles). Fazer micro-pausa no topo a cada 10-15 reps (2 respirações).',
     lactateImpact: 'Extremo (Acidose Periférica)'
   },
   {
@@ -796,14 +796,14 @@ const PARETO_PILLAR_META = {
     label: 'Frente 4 • Fracionamento Preventivo & Simulação (Anti-Falha)',
     shortBadge: 'Fracionamento Preventivo 80/20',
     badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
-    ruleSummary: 'Pequenas pausas planeadas de 3-5 respirações antes da falha concêntrica custam segundos mas poupam minutos.'
+    ruleSummary: 'Pequenas pausas planejadas de 3-5 respirações antes da falha concêntrica custam segundos mas poupam minutos.'
   },
   RECOVERY_SUPERCOMP: {
     id: 'RECOVERY_SUPERCOMP',
     label: 'Recuperação & Supercompensação do SNC',
     shortBadge: 'Dissipação de Fadiga',
     badgeClass: 'bg-slate-700/60 text-slate-300 border-slate-600',
-    ruleSummary: 'A adaptação ocorre no repouso: proteger o sono e o glicogénio garante a absorção dos estímulos de alta carga.'
+    ruleSummary: 'A adaptação ocorre no repouso: proteger o sono e o glicogênio garante a absorção dos estímulos de alta carga.'
   }
 };
 
@@ -812,10 +812,10 @@ const STRENGTH_STATION_PROTECTION_MAP = {
   frontSquat: { stations: 'Sled Push & Wall Balls (100 reps)', tip: 'Pareto 20%: Estabilidade torácica sob carga para proteger o padrão do Wall Ball.' },
   rdl: { stations: 'Sled Pull (50m) & Corrida 5-8', tip: 'Pareto 20%: Blindagem excêntrica da cadeia posterior sem induzir DOMS >72h.' },
   trapBarDeadlift: { stations: 'Sled Pull (50m) & Farmer\'s Carry (200m)', tip: 'Pareto 20%: Produção máxima de força concêntrica para reduzir o custo relativo do trenó.' },
-  bulgarianSplitSquat: { stations: 'Sandbag Lunges (100m) & Sled Push', tip: 'Pareto 20%: Estabilidade unilateral de anca/joelho para eliminar passos intermédios.' },
+  bulgarianSplitSquat: { stations: 'Sandbag Lunges (100m) & Sled Push', tip: 'Pareto 20%: Estabilidade unilateral de quadril/joelho para eliminar passos intermediários.' },
   barbellWalkingLunges: { stations: 'Sandbag Lunges (100m)', tip: 'Pareto 20%: Torna o saco oficial da divisão leve e metabolicamente sustentável.' },
   gobletSquat: { stations: 'Wall Balls (100 reps)', tip: 'Pareto 20%: Manutenção de mobilidade e velocidade de saída do fundo do agachamento.' },
-  dbPushPress: { stations: 'Wall Balls (Alvo 2,70m / 3,00m)', tip: 'Pareto 20%: Transferência elástica anca-ombro para poupar deltoides nas 100 reps.' },
+  dbPushPress: { stations: 'Wall Balls (Alvo 2,70m / 3,00m)', tip: 'Pareto 20%: Transferência elástica quadril-ombro para poupar deltoides nas 100 reps.' },
   bentOverRow: { stations: 'Sled Pull & SkiErg / Rowing', tip: 'Pareto 20%: Resistência de tração dorsal e postura sob fadiga ventilatória.' }
 };
 
@@ -826,8 +826,8 @@ const FRACTIONATION_SCHEMES = {
     badge: '7 Séries • Risco Zero de Falha',
     wallBallsSets: '20 - 15 - 15 - 15 - 15 - 10 - 10',
     wallBallsRestBreaths: '4 a 5 respirações profundas (~7s) com a bola apoiada na parede',
-    lungesStrategy: 'Blocos de 12,5m (meia pista) contínuos sem pousar o saco no solo',
-    lungesRestBreaths: '3 respirações profundas em extensão completa da anca a cada 12,5m',
+    lungesStrategy: 'Blocos de 12,5m (meia pista) contínuos sem soltar o saco no chão no solo',
+    lungesRestBreaths: '3 respirações profundas em extensão completa da quadril a cada 12,5m',
     estimatedTimeSaved: '+120s a +180s poupados face a quem vai até à falha na 1.ª série (~3m45s nos Wall Balls)'
   },
   BALANCED_PARETO: {
@@ -847,7 +847,7 @@ const FRACTIONATION_SCHEMES = {
     wallBallsSets: '35 - 25 - 20 - 20',
     wallBallsRestBreaths: '3 respirações curtas e forçadas (~4s) sem largar o contacto visual do alvo',
     lungesStrategy: '4 x 25m unbroken (passadas diretas sem shuffle intermédio)',
-    lungesRestBreaths: '2 respirações rápidas estritamente nas 3 viragens de 25m',
+    lungesRestBreaths: '2 respirações rápidas estritamente nas 3 viradas de 25m',
     estimatedTimeSaved: '+60s a +90s poupados para atletas com Piso de Força Protegido (~2m50s nos Wall Balls)'
   }
 };
@@ -856,28 +856,28 @@ const PARETO_DAY_DIRECTIVES = {
   1: { pillar: 'STRENGTH_FLOOR', bucket8020: 'SUPPORT_20_STRENGTH', vital20Focus: 'Cumprir 4x8 no Squat e 4x10 no RDL com 2 repetições em reserva (RIR 2) e técnica rígida nos trenós a 100% RW.', avoidTrap: 'Não transforme a força base num circuito metabólico até à falha; proteja o SNC para a quinta-feira.' },
   2: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Manter 100% dos 50 min estritamente em Zona 2 nasal (65-75% FCmáx) para expandir densidade mitocondrial.', avoidTrap: 'Não acelere o ritmo mesmo que se sinta descansado; correr na "zona cinzenta" (Zona 3) sabota o treino de amanhã.' },
   3: { pillar: 'ROXZONE_MARGINAL', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Aplicar o Protocolo dos 3 Passos ao sair dos Lunges/Wall Balls e estabilizar o GRP nos primeiros 300m de cada 800m.', avoidTrap: 'Não caminhe nos primeiros 100m da corrida após largar os halteres; engrene o trote imediatamente.' },
-  4: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Usar o SkiErg e o Remo para acumular volume aeróbico central com zero impacto excêntrico nas articulações.', avoidTrap: 'Não puxe nos ergómetros apenas com os braços; use o quadril e mantenha cadência de 24-28 spm.' },
+  4: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Usar o SkiErg e o Remo para acumular volume aeróbico central com zero impacto excêntrico nas articulações.', avoidTrap: 'Não puxe nos ergômetros apenas com os braços; use o quadril e mantenha cadência de 24-28 spm.' },
   5: { pillar: 'PREVENTIVE_PACING', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Correr o 1.º km da simulação 10-15s mais lento que o GRP e fracionar preventivamente os 50 Wall Balls (20-15-15).', avoidTrap: 'Não largue em ritmo de 5km seco no primeiro bloco; teste a disciplina emocional de prova.' },
-  6: { pillar: 'RECOVERY_SUPERCOMP', bucket8020: 'RECOVERY', vital20Focus: 'Sono profundo (8h+) e aporte completo de proteína e hidratos para supercompensar o Microciclo 1.', avoidTrap: 'Não faça "treinos extras" nem corte calorias no domingo de descanso.' },
+  6: { pillar: 'RECOVERY_SUPERCOMP', bucket8020: 'RECOVERY', vital20Focus: 'Sono profundo (8h+) e aporte completo de proteína e carboidratos para supercompensar o Microciclo 1.', avoidTrap: 'Não faça "treinos extras" nem corte calorias no domingo de descanso.' },
   7: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Cravar os 6x 1.000m de forma homogénea (desvio <3s entre o 1.º e o 6.º tiro) para elevar o teto de VO2máx.', avoidTrap: 'Não faça o 1.º tiro de 1.000m como sprint máximo para depois colapsar nos tiros 5 e 6.' },
   8: { pillar: 'STRENGTH_FLOOR', bucket8020: 'SUPPORT_20_STRENGTH', vital20Focus: 'Dominar o Bulgarian Split Squat e o Walking Lunge pesado (70-80% 1RM) mais os trenós em overload (+10-15% RW).', avoidTrap: 'Não compense a carga pesada curvando a lombar; passos curtos e constantes vencem o atrito do Sled.' },
   9: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Atingir os 60 min contínuos em Zona 2 pura para lavar metabolitos do pico de sobrecarga de ontem.', avoidTrap: 'Não salte esta rodagem regenerativa: ela representa o alicerce de 80% da sua capacidade de recuperação entre estações.' },
-  10: { pillar: 'ROXZONE_MARGINAL', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Superar a destruição ácida do Sled Push + Burpee Broad Jump mantendo cadência rápida (175+ spm) no 1km seguinte.', avoidTrap: 'Não dê saltos máximos nos Burpees; use passo largo junto às mãos e poupe os flexores da anca para correr.' },
-  11: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Sustentar 30 minutos de EMOM nos ergómetros em limiar aeróbico controlado com respiração ritmada.', avoidTrap: 'Se a FC matinal subiu +5 a +10 bpm hoje, reduza imediatamente a intensidade para Zona 1-2.' },
+  10: { pillar: 'ROXZONE_MARGINAL', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Superar a destruição ácida do Sled Push + Burpee Broad Jump mantendo cadência rápida (175+ spm) no 1km seguinte.', avoidTrap: 'Não dê saltos máximos nos Burpees; use passo largo junto às mãos e poupe os flexores do quadril para correr.' },
+  11: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Sustentar 30 minutos de EMOM nos ergômetros em limiar aeróbico controlado com respiração ritmada.', avoidTrap: 'Se a FC matinal subiu +5 a +10 bpm hoje, reduza imediatamente a intensidade para Zona 1-2.' },
   12: { pillar: 'PREVENTIVE_PACING', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Completar a Grande Simulação de 75% (6km + 6 estações) aplicando os 3 Passos nas 12 transições de Roxzone.', avoidTrap: 'Não tente bater recordes pessoais numa única estação isolada; proteja o tempo global do bloco.' },
   13: { pillar: 'RECOVERY_SUPERCOMP', bucket8020: 'RECOVERY', vital20Focus: 'Dissipação total da fadiga central do Microciclo 2 (o ponto mais duro dos 26 dias).', avoidTrap: 'Evite ficar longas horas em pé ou realizar atividades físicas recreativas desgastantes.' },
   14: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Sustentar os 3 blocos de 2.000m cravados no Goal Race Pace (GRP) com economia biomecânica máxima.', avoidTrap: 'Não force além do limiar anaeróbico; o objetivo hoje é eficiência mecânica no ritmo exato de prova.' },
   15: { pillar: 'STRENGTH_FLOOR', bucket8020: 'SUPPORT_20_STRENGTH', vital20Focus: 'Executar 3x5 a 80% 1RM com velocidade concêntrica máxima e cortar 25% do volume excêntrico.', avoidTrap: 'Proibido fazer descidas lentas (tempo excêntrico longo) ou repetições extras que gerem microlesões.' },
-  16: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Oxigenar a musculatura em 45 min de Zona 2 leve e libertar anca/tornozelo para a fase de polimento.', avoidTrap: 'Não transforme a rodagem leve num teste de ritmo; guarde o sistema nervoso para amanhã.' },
-  17: { pillar: 'ROXZONE_MARGINAL', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Executar as 5 rondas de transição ultra-rápida (400m + Estação) em menos de 5 segundos entre estação e trote.', avoidTrap: 'Zero paragens para beber água parado ou limpar suor durante as 5 passagens de Roxzone.' },
+  16: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Oxigenar a musculatura em 45 min de Zona 2 leve e libertar quadril/tornozelo para a fase de polimento.', avoidTrap: 'Não transforme a rodagem leve num teste de ritmo; guarde o sistema nervoso para amanhã.' },
+  17: { pillar: 'ROXZONE_MARGINAL', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Executar as 5 rounds de transição ultra-rápida (400m + Estação) em menos de 5 segundos entre estação e trote.', avoidTrap: 'Zero paradas para beber água parado ou limpar suor durante as 5 passagens de Roxzone.' },
   18: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Calibrar o ritmo exato dos primeiros 300m de SkiErg e Rowing da prova sem elevar o lactato.', avoidTrap: 'Não acumule fadiga de preensão manual (grip) a 7 dias do simulado.' },
-  19: { pillar: 'PREVENTIVE_PACING', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Ensaiar a sequência final (Farmer\'s Carry + Sandbag Lunges + Wall Balls) com o seu plano exato de quebra de séries.', avoidTrap: 'Não pouse a sandbag no chão em hipótese alguma e não faça a 1.ª série de Wall Balls acima do planeado.' },
+  19: { pillar: 'PREVENTIVE_PACING', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Ensaiar a sequência final (Farmer\'s Carry + Sandbag Lunges + Wall Balls) com o seu plano exato de quebra de séries.', avoidTrap: 'Não solte o sandbag no chão no chão em hipótese alguma e não faça a 1.ª série de Wall Balls acima do planejado.' },
   20: { pillar: 'RECOVERY_SUPERCOMP', bucket8020: 'RECOVERY', vital20Focus: 'Encerrar o bloco de carga e iniciar a janela de supercompensação fisiológica para a semana da prova.', avoidTrap: 'Não reduza a ingestão calórica apesar da redução do volume de treino no Tapering.' },
   21: { pillar: 'STRENGTH_FLOOR', bucket8020: 'SUPPORT_20_STRENGTH', vital20Focus: 'Ativação neural pura (3x6 a ~55-60% 1RM) e 2 pushes curtos de 12,5m apenas para manter recrutamento motor.', avoidTrap: 'Proibido aumentar cargas hoje mesmo sentindo-se forte; zero dano muscular na semana do simulado!' },
-  22: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Sentir o ritmo de prova (GRP) leve e fácil nos 4x 800m graças à dissipação da fadiga acumulada.', avoidTrap: 'Não corra os 800m mais rápido que o GRP; poupe o glicogénio muscular.' },
+  22: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Sentir o ritmo de prova (GRP) leve e fácil nos 4x 800m graças à dissipação da fadiga acumulada.', avoidTrap: 'Não corra os 800m mais rápido que o GRP; poupe o glicogênio muscular.' },
   23: { pillar: 'ROXZONE_MARGINAL', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Polir a memória motora das 8 estações em estímulos curtos de 30s sem acumular ácido lático.', avoidTrap: 'Pare imediatamente aos 30 segundos de cada minuto do EMOM.' },
-  24: { pillar: 'RECOVERY_SUPERCOMP', bucket8020: 'RECOVERY', vital20Focus: 'Iniciar o Carb-Loading (6 a 8 g/kg de hidratos limpos) para saturar 100% do glicogénio muscular e hepático.', avoidTrap: 'Corte fibras insolúveis (leguminosas, brócolos) e gorduras pesadas nas últimas 48h.' },
-  25: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Desbloquear a reatividade tendinosa em 15 min de trote Zona 1 + 3 retas fluidas de 80m.', avoidTrap: 'Não teste suplementos, géis ou sapatilhas novas na véspera do simulado.' },
+  24: { pillar: 'RECOVERY_SUPERCOMP', bucket8020: 'RECOVERY', vital20Focus: 'Iniciar o Carb-Loading (6 a 8 g/kg de carboidratos limpos) para saturar 100% do glicogênio muscular e hepático.', avoidTrap: 'Corte fibras insolúveis (leguminosas, brócolis) e gorduras pesadas nas últimas 48h.' },
+  25: { pillar: 'AEROBIC_ENGINE', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Desbloquear a reatividade tendinosa em 15 min de trote Zona 1 + 3 retas fluidas de 80m.', avoidTrap: 'Não teste suplementos, géis ou tênis de corrida novas na véspera do simulado.' },
   26: { pillar: 'PREVENTIVE_PACING', bucket8020: 'PRIMARY_80_AEROBIC', vital20Focus: 'Executar os 4 Pilares de Pareto: Corrida 1 a +15s/km (anti-fade), trenós constantes, 3 Passos nas 16 Roxzones e quebra preventiva nos Wall Balls.', avoidTrap: 'Não queime a largada por adrenalina no 1.º km nem vá até à falha concêntrica nas estações 7 e 8!' }
 };
 
@@ -1230,7 +1230,7 @@ const buildPdfBlobFromJpegDataUrl = (jpegDataUrl, imgWidth = 1080, imgHeight = 1
   return new Blob(chunks, { type: 'application/pdf' });
 };
 
-// Motor Gráfico Canvas HD 9:16 (1080x1920) com Controlo Estrito de Margens e Auto-Fit Tipográfico (Feature 007)
+// Motor Gráfico Canvas HD 9:16 (1080x1920) com Controle Estrito de Margens e Auto-Fit Tipográfico (Feature 007)
 const renderWorkoutPoster9x16ToCanvas = (payload) => {
   const W = 1080;
   const H = 1920;
@@ -1746,7 +1746,7 @@ function App() {
     return safeGetJSON('hyrox_day_logs', {});
   });
 
-  // Escopo de Fidelidade dos 7 Gráficos: 'CONFIRMED_ONLY' (100% apenas dados salvos/confirmados) ou 'ALL_WITH_PLANNED' (Confirmados + Planeado)
+  // Escopo de Fidelidade dos 7 Gráficos: 'CONFIRMED_ONLY' (100% apenas dados salvos/confirmados) ou 'ALL_WITH_PLANNED' (Confirmados + Planejado)
   const [analyticsScope, setAnalyticsScope] = useState(() => {
     const saved = safeGetItem('hyrox_analytics_scope', 'ALL_WITH_PLANNED');
     return ['CONFIRMED_ONLY', 'ALL_WITH_PLANNED'].includes(saved) ? saved : 'ALL_WITH_PLANNED';
@@ -1974,7 +1974,7 @@ function App() {
     safeSetItem('hyrox_active_athlete_id', activeAthleteId);
   }, [activeAthleteId]);
 
-  // Auto-Save Contínuo: mantém o registo do aluno/atleta ativo sempre atualizado dentro do Banco de Dados
+  // Auto-Save Contínuo: mantém o registro do aluno/atleta ativo sempre atualizado dentro do Banco de Dados
   useEffect(() => {
     setAthletesDatabase((prevDb) => {
       if (!Array.isArray(prevDb) || prevDb.length === 0) return prevDb;
@@ -2088,7 +2088,7 @@ function App() {
   const handleCreateNewAthlete = () => {
     const cleanName = String(newAthleteName || '').trim();
     if (!cleanName) {
-      setDbBannerMsg('Por favor, indique o nome do Aluno ou Atleta para registar no Banco de Dados.');
+      setDbBannerMsg('Por favor, indique o nome do Aluno ou Atleta para registrar no Banco de Dados.');
       setTimeout(() => setDbBannerMsg(''), 4000);
       return;
     }
@@ -2107,7 +2107,7 @@ function App() {
       id: newId,
       name: cleanName,
       roleOrCategory: String(newAthleteRole || 'Aluno / Atleta HYROX').trim(),
-      coachNotes: 'Registo criado no Banco de Dados de Alunos & Atletas.',
+      coachNotes: 'Registro criado no Banco de Dados de Alunos & Atletas.',
       recordType: 'ATHLETE',
       createdAt: nowIso,
       updatedAt: nowIso,
@@ -2196,7 +2196,7 @@ function App() {
     if (targetId === compareIdB && nextDb[0]) {
       setCompareIdB((nextDb[1] || nextDb[0]).id);
     }
-    setDbBannerMsg(`Registo "${target ? target.name : targetId}" removido do Banco de Dados.`);
+    setDbBannerMsg(`Registro "${target ? target.name : targetId}" removido do Banco de Dados.`);
     setTimeout(() => setDbBannerMsg(''), 3500);
   };
 
@@ -2376,7 +2376,7 @@ function App() {
     setSyncCode(cleanCode);
     if (!cleanProj) {
       setSyncStatus('ERROR');
-      setSyncMessage('Indique o Firebase Project ID ou importe um ficheiro JSON.');
+      setSyncMessage('Indique o Firebase Project ID ou importe um arquivo JSON.');
       return;
     }
     setSyncStatus('SYNCING');
@@ -2411,7 +2411,7 @@ function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setSyncStatus('SYNCED');
-    setSyncMessage(`Ficheiro JSON (${a.download}) exportado! Envie para o seu telemóvel/PC e clique em Importar JSON.`);
+    setSyncMessage(`Arquivo JSON (${a.download}) exportado! Envie para o seu celular/PC e clique em Importar JSON.`);
   };
 
   const handleImportBackupJson = (event) => {
@@ -2469,7 +2469,7 @@ function App() {
     return () => clearInterval(interval);
   }, [timerRunning, timerSeconds]);
 
-  // Screen Wake Lock API para impedir desligamento do ecrã no ginásio durante o cronómetro (US2 - T009)
+  // Screen Wake Lock API para impedir desligamento do tela no ginásio durante o cronómetro (US2 - T009)
   useEffect(() => {
     let isCancelled = false;
     const requestWakeLock = async () => {
@@ -2543,7 +2543,7 @@ function App() {
       case 'COMPROMISED':
         return { label: 'Compromised Running', bg: 'bg-rose-500/20 text-rose-400 border-rose-500/40' };
       case 'ERG_CAPACITY':
-        return { label: 'Ergómetros & Core', bg: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40' };
+        return { label: 'Ergômetros & Core', bg: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40' };
       case 'SIMULATION':
         return { label: 'Simulação HYROX', bg: 'bg-purple-500/20 text-purple-400 border-purple-500/40' };
       case 'SPEED':
@@ -2945,7 +2945,7 @@ function App() {
         keyDays: 'Dias 1, 15 e 21',
         ...sledPushEval,
         recommendation: sledPushEval.status === 'PROTECTED'
-          ? 'Reserva ampla: mantenha passadas curtas contínuas e descanse apenas nas viragens de 12,5m.'
+          ? 'Reserva ampla: mantenha passadas curtas contínuas e descanse apenas nas viradas de 12,5m.'
           : 'Priorize o Back/Front Squat nos Dias 1 e 15 (80% 1RM) e fracione cada 12,5m em 2 impulsos curtos para não destruir as pernas.'
       },
       {
@@ -2958,7 +2958,7 @@ function App() {
         keyDays: 'Dias 1 e 15',
         ...sledPullEval,
         recommendation: sledPullEval.status === 'PROTECTED'
-          ? 'Cadeia posterior blindada: use inclinação de tronco e extensão de anca na caixa sem puxar apenas de bíceps.'
+          ? 'Cadeia posterior blindada: use inclinação de tronco e extensão de quadril na caixa sem puxar apenas de bíceps.'
           : 'Reforce o RDL (Dia 1) e Trap Bar Deadlift (Dia 15); insira micro-pausa de 3s a cada 12,5m para preservar a lombar e o grip.'
       },
       {
@@ -2972,7 +2972,7 @@ function App() {
         ...carryEval,
         recommendation: carryEval.status === 'PROTECTED'
           ? 'Piso seguro para 200m unbroken com escápulas retraídas e marcha rápida.'
-          : 'Planeie 1 paragem cirúrgica de 5s aos 100m antes que a falha de antebraço contamine a Corrida 7.'
+          : 'Planeie 1 parada cirúrgica de 5s aos 100m antes que a falha de antebraço contamine a Corrida 7.'
       },
       {
         stationId: 'sandbagLunges',
@@ -2997,7 +2997,7 @@ function App() {
         keyDays: 'Dias 1, 15 e 21',
         ...wbEval,
         recommendation: wbEval.status === 'PROTECTED'
-          ? 'Boa reserva de ombro/anca: use o esquema Tático Equilibrado (25-20-15-15-15-10) com transferência elástica.'
+          ? 'Boa reserva de ombro/quadril: use o esquema Tático Equilibrado (25-20-15-15-15-10) com transferência elástica.'
           : 'Alto risco de falha concêntrica no fim: adote obrigatoriamente o fracionamento Conservador (20-15-15-15-15-10-10).'
       }
     ];
@@ -3391,7 +3391,7 @@ function App() {
         shortName: 'Lunges 100m',
         fatigueScore: Math.round(142 * getDeficitMultiplier('sandbagLunges')),
         timeLossSec: Math.round(56 * getDeficitMultiplier('sandbagLunges')),
-        actionTip: `Passada à largura da anca (evitar corda bamba) e micro-pausa em pé a cada 12,5m/25m.`
+        actionTip: `Passada à largura do quadril (evitar corda bamba) e micro-pausa em pé a cada 12,5m/25m.`
       },
       {
         id: 'roxzone',
@@ -3407,7 +3407,7 @@ function App() {
         shortName: 'Sled Pull',
         fatigueScore: Math.round(118 * getDeficitMultiplier('sledPull')),
         timeLossSec: Math.round(46 * getDeficitMultiplier('sledPull')),
-        actionTip: `Usar extensão de anca e caminhar para trás na caixa de 1,8m; proibido puxar isoladamente com os bíceps.`
+        actionTip: `Usar extensão de quadril e caminhar para trás na caixa de 1,8m; proibido puxar isoladamente com os bíceps.`
       },
       {
         id: 'burpees',
@@ -3439,7 +3439,7 @@ function App() {
         shortName: 'SkiErg 1km',
         fatigueScore: 48,
         timeLossSec: 15,
-        actionTip: `Fletir anca e usar o peso do tronco no início; poupar as pernas para o Sled Push da Estação 2.`
+        actionTip: `Fletir o quadril e usar o peso do tronco no início; poupar as pernas para o Sled Push da Estação 2.`
       }
     ];
 
@@ -3521,9 +3521,9 @@ function App() {
     if (currentWorkout.nutritionType === 'LOW') {
       carbsMin = 4; carbsMax = 5; title = 'Dia Regenerativo (Zona 2 / Descanso)';
     } else if (currentWorkout.nutritionType === 'MODERATE') {
-      carbsMin = 5; carbsMax = 6; title = 'Dia Moderado (Ergómetros / Técnica)';
+      carbsMin = 5; carbsMax = 6; title = 'Dia Moderado (Ergômetros / Técnica)';
     } else if (currentWorkout.nutritionType === 'CARB_LOAD') {
-      carbsMin = 6; carbsMax = 8; title = 'Saturação de Glicogénio (Carb-Loading 48h)';
+      carbsMin = 6; carbsMax = 8; title = 'Saturação de Glicogênio (Carb-Loading 48h)';
     } else if (currentWorkout.nutritionType === 'RACE_DAY') {
       carbsMin = 6; carbsMax = 8; title = 'Protocolo de Prova (Simulado 05/12)';
     }
@@ -3534,7 +3534,7 @@ function App() {
       carbsPerKg: `${carbsMin} a ${carbsMax} g/kg`,
       proteinGrams: `${Math.round(w * 1.6)}g a ${Math.round(w * 2.2)}g`,
       preWorkoutCarbs: `${Math.round(w * 1.5)}g a ${Math.round(w * 2.0)}g (2-3h antes)`,
-      postWorkoutCarbs: `${Math.round(w * 1.0)}g hidratos + 30g Whey (<45 min)`
+      postWorkoutCarbs: `${Math.round(w * 1.0)}g carboidratos + 30g Whey (<45 min)`
     };
   }, [athleteWeight, currentWorkout]);
 
@@ -3676,7 +3676,7 @@ function App() {
             text: summaryText,
             files: [pdfFile]
           });
-          setPdfActionMessage('✓ PDF 9:16 enviado com sucesso pelo menu de partilha do dispositivo!');
+          setPdfActionMessage('✓ PDF 9:16 enviado com sucesso pelo menu de compartilhamento do dispositivo!');
           return;
         }
         await navigator.share({
@@ -3855,7 +3855,7 @@ function App() {
                   ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
                   : 'bg-yellow-400/15 text-yellow-300 border-yellow-400/40 hover:bg-yellow-400/25'
               }`}
-              title="Sincronizar entre Web (PC) e Telemóvel (PWA / Cloud / JSON)"
+              title="Sincronizar entre Web (PC) e Celular (PWA / Cloud / JSON)"
             >
               <Cloud className="w-3.5 h-3.5 shrink-0" />
               <span>Web &amp; Mobile Sync</span>
@@ -4151,7 +4151,7 @@ function App() {
                       <span className="text-sm font-bold text-cyan-400 mt-0.5 block">{currentWorkout.targetZone}</span>
                     </div>
                     <div className="bg-slate-950/80 border border-slate-800/80 p-3 rounded-xl">
-                      <span className="text-[11px] text-slate-400 uppercase block">Perceção (RPE Borg)</span>
+                      <span className="text-[11px] text-slate-400 uppercase block">Percepção (RPE Borg)</span>
                       <span className="text-sm font-bold text-amber-400 mt-0.5 block">{currentWorkout.targetRPE}</span>
                     </div>
                     <div className="bg-slate-950/80 border border-slate-800/80 p-3 rounded-xl">
@@ -4196,7 +4196,7 @@ function App() {
                           <button
                             onClick={() => handleDayZoneChange(currentWorkout.dayNum, currentPrescribedZoneKey)}
                             className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition-all"
-                            title="Preencher o registo de hoje com a velocidade exata da Zona Prescrita"
+                            title="Preencher o registro de hoje com a velocidade exata da Zona Prescrita"
                           >
                             Usar Zona Prescrita ({currentPrescribedZoneKey}: {runningZonesKmh[currentPrescribedZoneKey]} km/h)
                           </button>
@@ -4389,7 +4389,7 @@ function App() {
                                       </div>
                                     </div>
 
-                                    {/* Controlo Editável da Porcentagem Exata */}
+                                    {/* Controle Editável da Porcentagem Exata */}
                                     <div className="flex items-center justify-between gap-2 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
                                       <span className="text-[11px] text-slate-300 font-medium">Porcentagem Alvo:</span>
                                       <div className="flex items-center gap-1">
@@ -4680,7 +4680,7 @@ function App() {
                             : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                         }`}>
                           <Smartphone className="w-3 h-3" />
-                          {wakeLockActive ? 'Ecrã Ativo (Wake Lock)' : 'Timer Ativo'}
+                          {wakeLockActive ? 'Tela Ativo (Wake Lock)' : 'Timer Ativo'}
                         </span>
                       )}
                       <span className="text-[11px] font-mono text-cyan-300 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/50">
@@ -4755,7 +4755,7 @@ function App() {
                       {dailyNutrition.title}
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-slate-800">
-                      <span className="text-slate-400">Hidratos de Carbono ({dailyNutrition.carbsPerKg}):</span>
+                      <span className="text-slate-400">Carboidratos ({dailyNutrition.carbsPerKg}):</span>
                       <span className="font-mono font-bold text-white">{dailyNutrition.carbsGrams}/dia</span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-slate-800">
@@ -5152,7 +5152,7 @@ function App() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Confirmados + Planeado (26 Dias)
+                    Confirmados + Planejado (26 Dias)
                   </button>
                 </div>
               </div>
@@ -5507,7 +5507,7 @@ function App() {
                   </div>
 
                   <p className="text-xs text-slate-400 mt-2">
-                    {evolutionMetric === 'SRPE' && 'Acompanhe a sobrecarga progressiva (M1 → M2) e o Tapering (M4) comparando a Carga Confirmada/Realizada vs. Planeada (linha tracejada).'}
+                    {evolutionMetric === 'SRPE' && 'Acompanhe a sobrecarga progressiva (M1 → M2) e o Tapering (M4) comparando a Carga Confirmada/Realizada vs. Planejada (linha tracejada).'}
                     {evolutionMetric === 'SPEED_KMH' && 'Velocidade real usada na corrida (km/h) em cada dia salvo/confirmado comparada à velocidade da Zona Prescrita (Z1–Z5).'}
                     {evolutionMetric === 'STRENGTH_RM' && 'Tendência da intensidade relativa (% de 1RM e solicitação neuromuscular) ao longo das 4 semanas.'}
                     {evolutionMetric === 'PACE' && 'Evolução do ritmo específico de corrida (min/km) por sessão face ao seu Goal Race Pace (GRP).'}
@@ -5586,7 +5586,7 @@ function App() {
                             );
                           })}
 
-                          {/* Linha Planeada / Prescrita de referência */}
+                          {/* Linha Planejada / Prescrita de referência */}
                           {(evolutionMetric === 'SRPE' || evolutionMetric === 'SPEED_KMH' || evolutionMetric === 'PACE') && (
                             <polyline
                               fill="none"
@@ -5766,7 +5766,7 @@ function App() {
                   </span>
                   <span className="flex items-center gap-1.5 text-rose-300 font-semibold">
                     <span className="w-2.5 h-2.5 rounded-sm bg-rose-400 inline-block shrink-0" />
-                    Posterior / Anca
+                    Posterior / Quadril
                   </span>
                   <span className="flex items-center gap-1.5 text-purple-300 font-semibold">
                     <span className="w-2.5 h-2.5 rounded-sm bg-purple-400 inline-block shrink-0" />
@@ -6157,7 +6157,7 @@ function App() {
                   </div>
 
                   <p className="text-xs text-slate-400 mt-2">
-                    Cruza a Carga Externa (Eixo X) com a Perceção Subjetiva de Esforço Borg 6-20 (Eixo Y). Pontos na zona superior esquerda indicam fadiga desproporcional ao estímulo.
+                    Cruza a Carga Externa (Eixo X) com a Percepção Subjetiva de Esforço Borg 6-20 (Eixo Y). Pontos na zona superior esquerda indicam fadiga desproporcional ao estímulo.
                   </p>
 
                   {/* SVG Scatter Plot */}
@@ -6460,7 +6460,7 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-300 uppercase">Arquitetura Planeada (22 Sessões Ativas)</span>
+                    <span className="font-bold text-slate-300 uppercase">Arquitetura Planejada (22 Sessões Ativas)</span>
                     <span className="font-mono font-bold text-emerald-400">
                       {stats.plannedAerobicRatioPct}% / {100 - stats.plannedAerobicRatioPct}%
                     </span>
@@ -6469,7 +6469,7 @@ function App() {
                     <div
                       className="h-full bg-emerald-500"
                       style={{ width: `${stats.plannedAerobicRatioPct}%` }}
-                      title="Motor Aeróbico, Limiar, Ergómetros e Compromised Running (18 sessões)"
+                      title="Motor Aeróbico, Limiar, Ergômetros e Compromised Running (18 sessões)"
                     />
                     <div
                       className="h-full bg-amber-500"
@@ -6760,11 +6760,11 @@ function App() {
                       Pareto Frente 4 • Anti-Falha Concêntrica
                     </span>
                     <h3 className="text-base sm:text-lg font-black text-white uppercase">
-                      Planeador de Fracionamento Preventivo (Sandbag Lunges &amp; Wall Balls)
+                      Planejador de Fracionamento Preventivo (Sandbag Lunges &amp; Wall Balls)
                     </h3>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Pequenas pausas controladas de 3 a 5 respirações antes da falha custam apenas segundos, mas evitam paragens forçadas de vários minutos nos quilómetros finais.
+                    Pequenas pausas controladas de 3 a 5 respirações antes da falha custam apenas segundos, mas evitam paradas forçadas de vários minutos nos quilómetros finais.
                   </p>
                 </div>
               </div>
@@ -6897,7 +6897,7 @@ function App() {
                     {Math.round(athleteWeight * 5)}g a {Math.round(athleteWeight * 7)}g <span className="text-xs font-sans font-normal text-slate-400">Carboidratos/dia (5-7 g/kg)</span>
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Proteína: <strong>{Math.round(athleteWeight * 1.6)}g a {Math.round(athleteWeight * 2.2)}g/dia</strong> (fracionada em 4 refeições de 25-40g). Lípidos: 20-30% das calorias totais.
+                    Proteína: <strong>{Math.round(athleteWeight * 1.6)}g a {Math.round(athleteWeight * 2.2)}g/dia</strong> (fracionada em 4 refeições de 25-40g). Lipídios: 20-30% das calorias totais.
                   </p>
                 </div>
 
@@ -6919,8 +6919,8 @@ function App() {
                   </span>
                   <ul className="text-xs text-slate-300 space-y-1.5 mt-2">
                     <li>• <strong>Pré-Treino (2-3h antes):</strong> {Math.round(athleteWeight * 1.5)}g a {Math.round(athleteWeight * 2)}g carbo baixo/médio IG (aveia, banana, mel).</li>
-                    <li>• <strong>Intra-Treino (Sábados):</strong> 30g a 45g/hora (1 a 2 géis isotónicos + sódio/potássio).</li>
-                    <li>• <strong>Pós-Treino (&lt;45 min):</strong> 30g Whey + {Math.round(athleteWeight * 1.0)}g hidratos de carbono rápidos.</li>
+                    <li>• <strong>Intra-Treino (Sábados):</strong> 30g a 45g/hora (1 a 2 géis isotônicos + sódio/potássio).</li>
+                    <li>• <strong>Pós-Treino (&lt;45 min):</strong> 30g Whey + {Math.round(athleteWeight * 1.0)}g carboidratos rápidos.</li>
                   </ul>
                 </div>
 
@@ -6929,7 +6929,7 @@ function App() {
                     4. Últimas 48h (03/12 e 04/12) & Dia do Simulado (05/12)
                   </span>
                   <ul className="text-xs text-slate-300 space-y-1.5 mt-2">
-                    <li>• <strong>Carb-Loading (03 e 04/12):</strong> {Math.round(athleteWeight * 6)}g a {Math.round(athleteWeight * 8)}g/dia (6-8 g/kg) de arroz branco, massa e fruta, cortando fibras insolúveis (brócolos, leguminosas) e gorduras.</li>
+                    <li>• <strong>Carb-Loading (03 e 04/12):</strong> {Math.round(athleteWeight * 6)}g a {Math.round(athleteWeight * 8)}g/dia (6-8 g/kg) de arroz branco, massa e fruta, cortando fibras insolúveis (brócolis, leguminosas) e gorduras.</li>
                     <li>• <strong>Refeição Pré-Prova (2,5 a 3h antes):</strong> {Math.round(athleteWeight * 1.5)}g de fácil digestão (pão branco/aveia com mel).</li>
                     <li>• <strong>Durante o Simulado:</strong> 1 gel energético aos 35-40 min (transição para o Rowing).</li>
                   </ul>
@@ -7007,11 +7007,11 @@ function App() {
                         </h3>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Todas as alterações de Zonas de Corrida (km/h), 1RMs, Peso e Treinos Confirmados ficam guardadas automaticamente neste registo.
+                        Todas as alterações de Zonas de Corrida (km/h), 1RMs, Peso e Treinos Confirmados ficam guardadas automaticamente neste registro.
                       </p>
                     </div>
                     <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 self-start">
-                      ● Guardado no Banco ({athletesDatabase.length} registos)
+                      ● Guardado no Banco ({athletesDatabase.length} registros)
                     </span>
                   </div>
 
@@ -7200,7 +7200,7 @@ function App() {
                   <div>
                     <h3 className="text-base sm:text-lg font-black text-white uppercase flex items-center gap-2">
                       <Users className="w-5 h-5 text-cyan-400" />
-                      Registos Guardados no Banco de Dados ({athletesDatabase.length})
+                      Registros Guardados no Banco de Dados ({athletesDatabase.length})
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
                       Selecione qualquer aluno/atleta para abrir a periodização dele ou defina-o como <strong>Perfil A</strong> / <strong>Perfil B</strong> para comparar lado a lado.
@@ -7321,7 +7321,7 @@ function App() {
                                   <button
                                     onClick={() => handleDeleteAthleteRecord(rec.id)}
                                     className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30"
-                                    title="Remover registo do Banco de Dados"
+                                    title="Remover registro do Banco de Dados"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -7619,7 +7619,7 @@ function App() {
         })()}
       </main>
 
-      {/* BARRA DE NAVEGAÇÃO INFERIOR FIXA PARA TELEMÓVEL (ERGONOMIA DE GINÁSIO - US2 - T010) */}
+      {/* BARRA DE NAVEGAÇÃO INFERIOR FIXA PARA CELULAR (ERGONOMIA DE ACADEMIA - US2 - T010) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl">
         <div className="grid grid-cols-7">
           {[
@@ -7668,7 +7668,7 @@ function App() {
                     Sincronização Web ↔ Mobile &amp; App PWA
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Mantenha os seus 1RMs, táticas Pareto 80/20 e diário de 26 dias iguais no PC e no Telemóvel.
+                    Mantenha os seus 1RMs, táticas Pareto 80/20 e diário de 26 dias iguais no PC e no Celular.
                   </p>
                 </div>
               </div>
@@ -7743,10 +7743,10 @@ function App() {
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
               <span className="text-xs font-extrabold uppercase text-emerald-400 flex items-center gap-1.5">
                 <Download className="w-4 h-4" />
-                2. Transferência Instantânea por Ficheiro JSON (Sem Conta / Offline)
+                2. Transferência Instantânea por Arquivo JSON (Sem Conta / Offline)
               </span>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Exporte todos os seus dados num ficheiro leve (<code>.json</code>) e abra-o no seu telemóvel ou computador a qualquer momento.
+                Exporte todos os seus dados num arquivo leve (<code>.json</code>) e abra-o no seu celular ou computador a qualquer momento.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
@@ -7783,17 +7783,17 @@ function App() {
               </div>
             )}
 
-            {/* Guia de Instalação no Ecrã Principal (PWA Mobile) */}
+            {/* Guia de Instalação no Tela Principal (PWA Mobile) */}
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 text-xs space-y-1.5">
               <span className="font-extrabold uppercase text-cyan-400 flex items-center gap-1.5">
                 <Smartphone className="w-3.5 h-3.5" />
-                Como instalar como App no Telemóvel (Funciona Offline no Ginásio):
+                Como instalar como App no Celular (Funciona Offline no Ginásio):
               </span>
               <p className="text-slate-300">
-                • <strong>Android (Chrome):</strong> Toque no menu <strong>⋮</strong> e selecione <strong>&quot;Instalar aplicação&quot;</strong> ou <strong>&quot;Adicionar ao ecrã principal&quot;</strong>.
+                • <strong>Android (Chrome):</strong> Toque no menu <strong>⋮</strong> e selecione <strong>&quot;Instalar aplicação&quot;</strong> ou <strong>&quot;Adicionar ao tela principal&quot;</strong>.
               </p>
               <p className="text-slate-300">
-                • <strong>iPhone / iOS (Safari):</strong> Toque no botão <strong>Partilhar (↑)</strong> na barra inferior e escolha <strong>&quot;Adicionar ao ecrã principal&quot;</strong>.
+                • <strong>iPhone / iOS (Safari):</strong> Toque no botão <strong>Comcompartilhamentor (↑)</strong> na barra inferior e escolha <strong>&quot;Adicionar ao tela principal&quot;</strong>.
               </p>
             </div>
           </div>
@@ -7814,7 +7814,7 @@ function App() {
                     Ficha &amp; Poster 9:16 em PDF • Treino do Dia {currentWorkout.dayNum}/26
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Formato vertical <strong>9:16 (1080×1920 HD / 540×960pt PDF)</strong> pronto para enviar no WhatsApp ou abrir no telemóvel do aluno <strong>{activeAthleteRecord?.name}</strong>.
+                    Formato vertical <strong>9:16 (1080×1920 HD / 540×960pt PDF)</strong> pronto para enviar no WhatsApp ou abrir no celular do aluno <strong>{activeAthleteRecord?.name}</strong>.
                   </p>
                 </div>
               </div>
@@ -7852,7 +7852,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Coluna Direita: Botões de Download PDF 9:16, Partilha WhatsApp e Troca Rápida de Dia/Aluno */}
+              {/* Coluna Direita: Botões de Download PDF 9:16, Compartilhamento WhatsApp e Troca Rápida de Dia/Aluno */}
               <div className="md:col-span-6 space-y-4">
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
                   <span className="text-xs font-black uppercase text-yellow-400 block">
@@ -7964,7 +7964,7 @@ function App() {
                     className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
                   >
                     <Share2 className="w-4 h-4" />
-                    Enviar / Partilhar PDF 9:16 (WhatsApp / Telemóvel)
+                    Enviar / Comcompartilhamentor PDF 9:16 (WhatsApp / Celular)
                   </button>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
