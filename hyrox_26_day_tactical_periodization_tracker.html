@@ -1119,6 +1119,280 @@ const getDayPlannedRunDistanceKm = (day) => {
   return distByDay[day.dayNum] !== undefined ? distByDay[day.dayNum] : 4.0;
 };
 
+
+// ==========================================
+// MOTOR ANALÍTICO DE PARETO (80/20) POR DIA DE TREINO (FEATURE 009)
+// Decompõe os exercícios, blocos, 1RMs e corrida específicos de cada um dos 26 dias
+// ==========================================
+const getDailyWorkoutParetoCandidates = (targetDayNum, ctx = {}) => {
+  const {
+    division = {
+      name: 'Men Open',
+      sledPushWeight: 152,
+      sledPullWeight: 103,
+      kettlebellWeight: 24,
+      sandbagWeight: 20,
+      wallBallWeight: 6,
+      wallBallTarget: '3,00 m'
+    },
+    runningZonesKmh = { Z1: 10.1, Z2: 11.2, Z3: 12.6, Z4: 13.2, Z5: 14.1 },
+    oneRMs = {
+      backSquat: 130,
+      frontSquat: 100,
+      rdl: 140,
+      trapBarDeadlift: 160,
+      bulgarianSplitSquat: 60,
+      barbellWalkingLunges: 70,
+      gobletSquat: 40,
+      dbPushPress: 24,
+      bentOverRow: 80
+    },
+    customPcts = {},
+    goalPace = '04:45',
+    activeFractionation = { wallBallsSets: '25-20-15-15-15-10' },
+    roxzoneTargetSec = 22,
+    currentLog = {}
+  } = ctx;
+
+  const spWeight = division.sledPushWeight || 152;
+  const splWeight = division.sledPullWeight || 103;
+  const kbWeight = division.kettlebellWeight || 24;
+  const sbWeight = division.sandbagWeight || 20;
+  const wbWeight = division.wallBallWeight || 6;
+
+  switch (targetDayNum) {
+    case 1: { // Força Específica & Trenós (Strength Floor)
+      const bsKg = Math.round((oneRMs.backSquat || 130) * (customPcts['backSquat_d1'] || 0.775));
+      const rdlKg = Math.round((oneRMs.rdl || 140) * (customPcts['rdl_d1'] || 0.725));
+      return [
+        { id: 'd1_sledPush', name: `Sled Push (4x 25m @ ${spWeight} kg)`, shortName: 'Sled Push 100m', fatigueScore: 165, timeLossSec: 420, actionTip: `Trenó com carga oficial (${spWeight} kg). Passos curtos e contínuos com inclinação de 45° sem pausas.` },
+        { id: 'd1_squat', name: `Back/Front Squat (4x 8 reps @ ${bsKg} kg)`, shortName: `Squat (${bsKg}kg)`, fatigueScore: 155, timeLossSec: 480, actionTip: `Piso de força protetor dos quadríceps. Manter RIR 2 sem buscar a falha concêntrica.` },
+        { id: 'd1_sledPull', name: `Sled Pull (4x 25m @ ${splWeight} kg)`, shortName: 'Sled Pull 100m', fatigueScore: 135, timeLossSec: 360, actionTip: `Tração com peso de ${splWeight} kg. Encaixe as escápulas e utilize a extensão do quadril ao recuar.` },
+        { id: 'd1_rdl', name: `Romanian Deadlift (4x 10 reps @ ${rdlKg} kg)`, shortName: `RDL (${rdlKg}kg)`, fatigueScore: 120, timeLossSec: 380, actionTip: `Blindagem de cadeia posterior. Controle excêntrico de 3s para prevenir lesões em corrida sob fadiga.` },
+        { id: 'd1_farmers', name: `Farmer's Carry (4x 100m @ 2x ${kbWeight} kg)`, shortName: 'Farmer 400m', fatigueScore: 95, timeLossSec: 320, actionTip: `Pegada e estabilidade escapular. Passadas rápidas e cadenciadas sem oscilação lateral dos pesos.` },
+        { id: 'd1_warmup', name: 'Mobilidade de Quadril/Tornozelo & Ativação', shortName: 'Mobilidade', fatigueScore: 25, timeLossSec: 600, actionTip: `Aquecimento articular dinâmico para garantir profundidade segura no agachamento.` }
+      ];
+    }
+
+    case 2: { // Base Aeróbica (Zona 2) & Mobilidade
+      return [
+        { id: 'd2_runZ2', name: `Corrida Contínua Z2 (45 min @ ${runningZonesKmh.Z2} km/h)`, shortName: 'Corrida Z2 45m', fatigueScore: 140, timeLossSec: 2700, actionTip: `Ritmo conversacional estrito em Zona 2. Expande capilarização mitocondrial e depura lactato residual.` },
+        { id: 'd2_mobility', name: 'Liberação Miofascial (Foam Rolling) & Flexores', shortName: 'Liberação/Mob', fatigueScore: 25, timeLossSec: 900, actionTip: `Liberação de fáscia e flexores de quadril para regenerar os tecidos para as transições de quinta-feira.` }
+      ];
+    }
+
+    case 3: { // Compromised Running (Transições Base) - 5 Rounds
+      return [
+        { id: 'd3_grpRun', name: `Corrida GRP (5x 800m = 4,0 km @ ${runningZonesKmh.Z3} km/h)`, shortName: 'Corrida GRP 4km', fatigueScore: 185, timeLossSec: 1140, actionTip: `Ritmo alvo de prova (${goalPace}/km). Estabilize a passada nos primeiros 200m pós-estação.` },
+        { id: 'd3_lunges', name: `Sandbag Lunges (Round 4: 40m @ ${sbWeight} kg)`, shortName: 'Lunges 40m', fatigueScore: 130, timeLossSec: 150, actionTip: `Saco alto nos trapézios, sem tocar o joelho com impacto. Não solte o saco no chão.` },
+        { id: 'd3_wallBalls', name: `Wall Balls (Round 5: 30 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 30r', fatigueScore: 125, timeLossSec: 110, actionTip: `Quebre em 2 séries (18/12) com 3 respirações de pausa para não atingir a falha muscular.` },
+        { id: 'd3_burpees', name: 'Burpee Broad Jumps (Round 2: 20m)', shortName: 'Burpees 20m', fatigueScore: 110, timeLossSec: 130, actionTip: `Subida em base larga para economizar flexores do quadril antes da corrida seguinte.` },
+        { id: 'd3_ski', name: 'SkiErg (Round 1: 500m)', shortName: 'SkiErg 500m', fatigueScore: 85, timeLossSec: 120, actionTip: `Use o peso do tronco e grande dorsal nos primeiros 300m, poupando os braços.` },
+        { id: 'd3_row', name: 'Rowing (Round 3: 500m)', shortName: 'Rowing 500m', fatigueScore: 80, timeLossSec: 115, actionTip: `Cadência econômica de 24-26 spm para regular a ventilação antes dos Lunges.` },
+        { id: 'd3_warmup', name: 'Aquecimento (1,5 km Trote + Educativos)', shortName: 'Aquecimento', fatigueScore: 35, timeLossSec: 540, actionTip: `Elevação progressiva da temperatura corporal e ativação neuromuscular.` },
+        { id: 'd3_rest', name: 'Recuperação Ativa (90s entre rounds)', shortName: 'Pausas 90s', fatigueScore: 20, timeLossSec: 360, actionTip: `Caminhada ativa respirando pelo diafragma para reciclagem precoce de lactato.` }
+      ];
+    }
+
+    case 4: { // Limiar em Ergômetros & Wall Balls EMOM (24 min)
+      return [
+        { id: 'd4_wb', name: `Wall Balls EMOM (6x 15 reps = 90 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 90r', fatigueScore: 165, timeLossSec: 360, actionTip: `90 repetições acumuladas. Mantenha cadência ritmada e respire no topo de cada repetição.` },
+        { id: 'd4_row', name: 'Rowing EMOM (6x 12-15 cal)', shortName: 'Row EMOM', fatigueScore: 120, timeLossSec: 360, actionTip: `Potência de pernas na puxada sem gastar braços; feche a caloria aos 45 segundos.` },
+        { id: 'd4_ski', name: 'SkiErg EMOM (6x 12-15 cal)', shortName: 'Ski EMOM', fatigueScore: 115, timeLossSec: 360, actionTip: `Flexão de tronco controlada com cadência fluida para não elevar demais a FC.` },
+        { id: 'd4_core', name: 'Estabilidade do Core (Plank Pull-Through + Hollow)', shortName: 'Core 3 séries', fatigueScore: 55, timeLossSec: 420, actionTip: `Antirrotação do tronco e ativação de transverso para suporte postural nas corridas.` },
+        { id: 'd4_rest', name: 'Descanso Ativo no EMOM (Minuto 4 a cada round)', shortName: 'Descanso EMOM', fatigueScore: 15, timeLossSec: 360, actionTip: `Descompressão rápida e respiração nasal para baixar os batimentos.` }
+      ];
+    }
+
+    case 5: { // Simulação Parcial (Half-Sim 50%)
+      return [
+        { id: 'd5_run', name: `Corrida Z4 (4x 1km = 4,0 km @ ${runningZonesKmh.Z4} km/h)`, shortName: 'Corrida 4km', fatigueScore: 175, timeLossSec: 1080, actionTip: `4 tiros de 1km intercalados com estações. Manter passada constante na saída do trenó.` },
+        { id: 'd5_wallBalls', name: `Wall Balls (50 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 50r', fatigueScore: 135, timeLossSec: 140, actionTip: `Quebra estratégica (20-15-15) com 4 respirações de pausa com a bola na parede.` },
+        { id: 'd5_lunges', name: `Sandbag Lunges (50m @ ${sbWeight} kg)`, shortName: 'Lunges 50m', fatigueScore: 130, timeLossSec: 160, actionTip: `Passadas firmes de 1m sem passos curtos de ajuste. Não deixe o saco escorregar.` },
+        { id: 'd5_sledPush', name: `Sled Push (25m @ ${spWeight} kg)`, shortName: 'Sled Push 25m', fatigueScore: 125, timeLossSec: 75, actionTip: `Tração forte contínua sem parar no meio dos 25 metros.` },
+        { id: 'd5_sledPull', name: `Sled Pull (25m @ ${splWeight} kg)`, shortName: 'Sled Pull 25m', fatigueScore: 105, timeLossSec: 80, actionTip: `Caminhe para trás estendendo o quadril na caixa de tração.` },
+        { id: 'd5_burpees', name: 'Burpee Broad Jumps (40m)', shortName: 'Burpees 40m', fatigueScore: 100, timeLossSec: 180, actionTip: `Saltos horizontais cadenciados de 1,2 a 1,5m com respiração sincronizada.` },
+        { id: 'd5_farmers', name: `Farmer's Carry (100m @ 2x ${kbWeight} kg)`, shortName: 'Farmer 100m', fatigueScore: 80, timeLossSec: 90, actionTip: `Passo rápido sem oscilação lateral dos pesos.` },
+        { id: 'd5_ski', name: 'SkiErg (500m)', shortName: 'SkiErg 500m', fatigueScore: 70, timeLossSec: 115, actionTip: `Controle de ritmo para não hiperventilar na largada.` },
+        { id: 'd5_row', name: 'Rowing (500m)', shortName: 'Rowing 500m', fatigueScore: 65, timeLossSec: 110, actionTip: `Ritmo de transição antes dos Burpees.` }
+      ];
+    }
+
+    case 6: case 13: case 20: { // Descanso Absoluto / Restauração do SNC
+      return [
+        { id: `d${targetDayNum}_cns`, name: 'Restauração Passiva do SNC & Sono Reparador (8h+)', shortName: 'Sono & SNC', fatigueScore: 140, timeLossSec: 28800, actionTip: `80% da adaptação neuromuscular e mitocondrial ocorre durante o repouso profundo.` },
+        { id: `d${targetDayNum}_glycogen`, name: 'Reposição de Glicogênio Muscular & Nutrição Limpa', shortName: 'Glicogênio', fatigueScore: 110, timeLossSec: 7200, actionTip: `Manter aporte de 4-5 g/kg de carboidratos e hidratação rica em eletrólitos.` },
+        { id: `d${targetDayNum}_hydration`, name: 'Hidratação Celular & Eletrólitos (3 a 4 Litros)', shortName: 'Hidratação', fatigueScore: 70, timeLossSec: 3600, actionTip: `Volemia sanguínea e depuração metabólica dos tecidos conjunturais.` }
+      ];
+    }
+
+    case 7: { // Intervalos de VO2máx e Limiar (Corrida Fresca)
+      return [
+        { id: 'd7_vo2Run', name: `Intervalos VO2máx (6x 1.000m @ ${runningZonesKmh.Z5} km/h)`, shortName: '6x 1km VO2', fatigueScore: 190, timeLossSec: 1500, actionTip: `Tiros 5-8s/km mais velozes que o GRP com 90s de trote ativo entre repetições.` },
+        { id: 'd7_warmup', name: 'Aquecimento Progressivo (2 km Z1-Z2 + Educativos)', shortName: 'Aquecimento 2km', fatigueScore: 35, timeLossSec: 720, actionTip: `Ativação progressiva da frequência cardíaca e coordenação neuromuscular.` },
+        { id: 'd7_cooldown', name: 'Desaquecimento / Trote Regenerativo (1 km)', shortName: 'Trote Final 1km', fatigueScore: 20, timeLossSec: 360, actionTip: `Remoção ativa de metabólitos e desaceleração do sistema parassimpático.` }
+      ];
+    }
+
+    case 8: { // Sobrecarga de Trenós (Overload) & Força Unilateral
+      const spOverload = Math.round(spWeight * 1.15);
+      const bssKg = Math.round((oneRMs.bulgarianSplitSquat || 60) * 0.75);
+      const bwlKg = Math.round((oneRMs.barbellWalkingLunges || 70) * 0.70);
+      return [
+        { id: 'd8_sledOverload', name: `Sled Push Overload (5x 25m @ ${spOverload} kg - 115% RW)`, shortName: 'Sled Push +15%', fatigueScore: 175, timeLossSec: 450, actionTip: `Sobrecarga de ${spOverload} kg (+15%). Quando voltar ao peso oficial na prova, parecerá leve.` },
+        { id: 'd8_splitSquat', name: `Bulgarian Split Squats (4x 8/perna @ ${bssKg} kg)`, shortName: `Split Squat (${bssKg}kg)`, fatigueScore: 145, timeLossSec: 420, actionTip: `Estabilidade unilateral de quadril e joelho para sustentar passadas potentes.` },
+        { id: 'd8_sledPull', name: `Sled Pull (5x 25m @ ${splWeight} kg)`, shortName: 'Sled Pull 125m', fatigueScore: 130, timeLossSec: 380, actionTip: `Velocidade máxima de transição de corda na caixa demarcada.` },
+        { id: 'd8_heavyLunges', name: `Heavy Barbell Walking Lunges (3x 16 passadas @ ${bwlKg} kg)`, shortName: 'Barbell Lunges', fatigueScore: 125, timeLossSec: 360, actionTip: `Tronco ereto e alinhamento do joelho. Carga excêntrica pesada para blindar os quadríceps.` },
+        { id: 'd8_heavyFarmers', name: `Farmer's Carry Pesado (3x 100m sem pousar)`, shortName: 'Farmer Pesado', fatigueScore: 100, timeLossSec: 270, actionTip: `Sustente a pegada sem soltar os pesos no chão. Fortalece trapézios e antebraços.` }
+      ];
+    }
+
+    case 9: { // Corrida Aeróbica Regenerativa (Zona 2)
+      return [
+        { id: 'd9_runZ2', name: `Corrida Longa Regenerativa (50 min @ ${runningZonesKmh.Z2} km/h)`, shortName: 'Corrida Z2 50m', fatigueScore: 145, timeLossSec: 3000, actionTip: `Manter cadência alta e passadas curtas para amortecer forças de frenagem.` },
+        { id: 'd9_mobility', name: 'Alongamento Dinâmico Cadeia Posterior & Tornozelos', shortName: 'Alongamento Dinâmico', fatigueScore: 25, timeLossSec: 900, actionTip: `Recuperação da flexibilidade muscular antes da sessão de transições de quinta.` }
+      ];
+    }
+
+    case 10: { // Compromised Running Severo (Foco Membros Inferiores) - 4 Rounds
+      return [
+        { id: 'd10_run', name: `Corrida GRP Sob Acidose (4x [400m + 600m] = 4,0 km @ ${runningZonesKmh.Z3} km/h)`, shortName: 'Corrida GRP 4km', fatigueScore: 180, timeLossSec: 1140, actionTip: `Recuperar a passada nos primeiros 150m após o Sandbag Lunge sem deixar o pace cair.` },
+        { id: 'd10_lunges', name: `Sandbag Lunges (4x 50m = 200m @ ${sbWeight} kg)`, shortName: `Lunges 200m (${sbWeight}kg)`, fatigueScore: 160, timeLossSec: 540, actionTip: `200m totais de Lunges na sessão. Bloco de 10 passadas com 2 respirações no topo.` },
+        { id: 'd10_farmers', name: `Farmer's Carry (4x 50m = 200m @ 2x ${kbWeight} kg)`, shortName: 'Farmer 200m', fatigueScore: 110, timeLossSec: 240, actionTip: `Trave o abdômen e respire no passo. Não deixe os pesos baterem nas coxas.` },
+        { id: 'd10_rest', name: 'Recuperação Ativa entre Rounds (2 min)', shortName: 'Pausas 2 min', fatigueScore: 20, timeLossSec: 480, actionTip: `Caminhada ativa respirando pelo abdômen para eliminar fosfatos e lactato.` }
+      ];
+    }
+
+    case 11: { // Capacidade de Ergômetros & Eficiência em Burpees
+      return [
+        { id: 'd11_skiErg', name: 'SkiErg Pacing Prova (3x 1.000m @ Ritmo Alvo)', shortName: 'SkiErg 3x 1km', fatigueScore: 145, timeLossSec: 720, actionTip: `Estabilize o split de 500m logo aos 200m de trabalho. Não acelere cedo demais.` },
+        { id: 'd11_rowing', name: 'Rowing Pacing Prova (3x 1.000m @ Ritmo Alvo)', shortName: 'Rowing 3x 1km', fatigueScore: 140, timeLossSec: 720, actionTip: `Cadência rigorosa de 24-26 spm focando na tração de pernas.` },
+        { id: 'd11_burpees', name: 'Burpee Broad Jumps Técnica Sob Fadiga (4x 20m)', shortName: 'Burpees 80m', fatigueScore: 125, timeLossSec: 320, actionTip: `Subida em base ampla junto aos pés e salto horizontal constante.` }
+      ];
+    }
+
+    case 12: { // Simulação de Pico (75% do Volume - Big Brick)
+      return [
+        { id: 'd12_run', name: `Corrida GRP Fracionada (6x 1km = 6,0 km @ ${runningZonesKmh.Z3} km/h)`, shortName: 'Corrida 6km', fatigueScore: 195, timeLossSec: 1710, actionTip: `Maior volume de corrida do ciclo em ritmo de prova intercalado com 6 estações.` },
+        { id: 'd12_wallBalls', name: `Wall Balls Completos (100 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 100r', fatigueScore: 155, timeLossSec: 280, actionTip: `Teste oficial da quebra: ${activeFractionation.wallBallsSets}. Respeite o protocolo de pausas.` },
+        { id: 'd12_lunges', name: `Sandbag Lunges Oficiais (100m @ ${sbWeight} kg)`, shortName: 'Lunges 100m', fatigueScore: 150, timeLossSec: 330, actionTip: `100m ininterruptos. Mantenha passadas regulares de 1 metro sem precipitação.` },
+        { id: 'd12_sledPush', name: `Sled Push Oficial (50m @ ${spWeight} kg)`, shortName: 'Sled Push 50m', fatigueScore: 140, timeLossSec: 150, actionTip: `50m contínuos. Mantenha passadas curtas e alavanca baixa.` },
+        { id: 'd12_burpees', name: 'Burpee Broad Jumps Oficiais (80m)', shortName: 'Burpees 80m', fatigueScore: 130, timeLossSec: 360, actionTip: `Ritmo diesel sustentável sem saltos exagerados que disparem a frequência cardíaca.` },
+        { id: 'd12_sledPull', name: `Sled Pull Oficial (50m @ ${splWeight} kg)`, shortName: 'Sled Pull 50m', fatigueScore: 120, timeLossSec: 160, actionTip: `Extensão potente do quadril a cada recuo de pernas.` },
+        { id: 'd12_skiErg', name: 'SkiErg Oficial (1.000m)', shortName: 'SkiErg 1km', fatigueScore: 85, timeLossSec: 235, actionTip: `Ritmo controlado de largada de prova sem queimar a largada.` }
+      ];
+    }
+
+    case 14: { // Ritmo de Prova & Controle de Limiar
+      return [
+        { id: 'd14_grpRun', name: `Tiros de Pace GRP (5x 1.000m @ ${runningZonesKmh.Z4} km/h)`, shortName: '5x 1km GRP', fatigueScore: 180, timeLossSec: 1425, actionTip: `Pacing cravado no ritmo alvo de prova com 60s de trote em Roxzone simulada.` },
+        { id: 'd14_warmup', name: 'Aquecimento Dinâmico (1,5 km Trote + Educativos)', shortName: 'Aquecimento', fatigueScore: 30, timeLossSec: 540, actionTip: `Ativação de tornozelos e técnica de passada circular.` },
+        { id: 'd14_cooldown', name: 'Retorno à Calma Regenerativo (1 km Z1)', shortName: 'Trote Z1 1km', fatigueScore: 20, timeLossSec: 360, actionTip: `Normalização cardiopulmonar e redução de lactato pós-tiros.` }
+      ];
+    }
+
+    case 15: { // Manutenção Neural de Força (Corte de Volume Excêntrico)
+      const tbKg = Math.round((oneRMs.trapBarDeadlift || 160) * 0.80);
+      return [
+        { id: 'd15_trapBar', name: `Trap Bar Deadlift / Squat (3x 5 reps @ ${tbKg} kg - 80% 1RM)`, shortName: `Trap Bar (${tbKg}kg)`, fatigueScore: 150, timeLossSec: 360, actionTip: `Potência concêntrica máxima sem ir até a falha muscular (2,5 min de descanso).` },
+        { id: 'd15_sledPushSprint', name: `Sled Push Sprint (3x 12,5m @ ${spWeight} kg)`, shortName: 'Sled Sprint 38m', fatigueScore: 120, timeLossSec: 180, actionTip: `Explosão de largada. Tiros curtos com 2 min de descanso para não gerar acidose residual.` },
+        { id: 'd15_sledPullSprint', name: `Sled Pull Sprint (3x 12,5m @ ${splWeight} kg)`, shortName: 'Sled Pull Sprint', fatigueScore: 105, timeLossSec: 180, actionTip: `Tração rápida com foco na velocidade de recolhimento de corda.` }
+      ];
+    }
+
+    case 16: { // Rodagem Aeróbica Curta & Mobilidade
+      return [
+        { id: 'd16_runZ2', name: `Rodagem Aeróbica Z2 (35 min @ ${runningZonesKmh.Z2} km/h)`, shortName: 'Corrida Z2 35m', fatigueScore: 125, timeLossSec: 2100, actionTip: `Ritmo relaxado e fluido para oxigenar os tecidos sem estresse biomecânico.` },
+        { id: 'd16_mobility', name: 'Mobilidade Torácica, Extensão de Quadril & Ombros', shortName: 'Mobilidade 15m', fatigueScore: 25, timeLossSec: 900, actionTip: `Alívio articular e flexibilidade dos flexores para as transições de amanhã.` }
+      ];
+    }
+
+    case 17: { // Bricks de Transição Rápida (Roxzone Mastery) - 4 Rounds
+      return [
+        { id: 'd17_brickRun', name: `Corrida GRP + Saídas de Estação (4x [1km + 400m] = 5,6 km)`, shortName: 'Corrida 5,6km', fatigueScore: 180, timeLossSec: 1600, actionTip: `Transição máxima de 15 segundos entre estação e corrida com trote de 400m no limiar.` },
+        { id: 'd17_wb', name: `Wall Balls de Alta Precisão (Round 4: 40 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 40r', fatigueScore: 125, timeLossSec: 120, actionTip: `2 séries de 20 reps perfeitas. Saída imediata para o trote de 400m.` },
+        { id: 'd17_lunges', name: `Sandbag Lunges Rápidos (Round 2: 30m @ ${sbWeight} kg)`, shortName: 'Lunges 30m', fatigueScore: 115, timeLossSec: 90, actionTip: `Passadas firmes e cadenciadas mantendo a postura vertical do tronco.` },
+        { id: 'd17_burpees', name: 'Burpee Broad Jumps (Round 3: 20m)', shortName: 'Burpees 20m', fatigueScore: 95, timeLossSec: 90, actionTip: `Subida em base ampla para manter a frequência respiratória controlada.` },
+        { id: 'd17_farmers', name: `Farmer's Carry (Round 1: 150m @ 2x ${kbWeight} kg)`, shortName: 'Farmer 150m', fatigueScore: 90, timeLossSec: 120, actionTip: `Passadas rápidas sem pausas para simular o percurso completo de prova.` }
+      ];
+    }
+
+    case 18: { // Polimento de Ergômetros & Cadência
+      return [
+        { id: 'd18_skiErg', name: 'SkiErg a Ritmo de Prova (3x 500m com 5 min Bike fácil)', shortName: 'SkiErg 1.500m', fatigueScore: 110, timeLossSec: 540, actionTip: `Pacing cravado na cadência da prova, alternando com 5 min de giro na bike.` },
+        { id: 'd18_rowing', name: 'Rowing a Ritmo de Prova (3x 500m com 5 min Row fácil)', shortName: 'Rowing 1.500m', fatigueScore: 105, timeLossSec: 540, actionTip: `Foco na tração pura de pernas sem cansar os antebraços e ombros.` },
+        { id: 'd18_wallBalls', name: `Wall Balls Técnicos de Ativação (3x 20 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 60r', fatigueScore: 95, timeLossSec: 180, actionTip: `Receber a bola no fundo do agachamento usando o ciclo alongamento-encurtamento.` }
+      ];
+    }
+
+    case 19: { // Último Ensaio de Ritmo (35% do Volume - Sharpener)
+      return [
+        { id: 'd19_run', name: `Corrida a Ritmo de Prova (3x 1.000m = 3,0 km @ ${runningZonesKmh.Z3} km/h)`, shortName: 'Corrida 3km', fatigueScore: 160, timeLossSec: 855, actionTip: `3 km de ritmo exato de prova sem acelerar demais nem ultrapassar o limiar.` },
+        { id: 'd19_wallBalls', name: `Wall Balls de Ensaio (40 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 40r', fatigueScore: 115, timeLossSec: 110, actionTip: `Ensaio do padrão de quebra (25-15). Terminar a sessão com ampla reserva de energia.` },
+        { id: 'd19_lunges', name: `Sandbag Lunges (40m @ ${sbWeight} kg)`, shortName: 'Lunges 40m', fatigueScore: 110, timeLossSec: 120, actionTip: `Execução técnica impecável sem impacto articular nos joelhos.` },
+        { id: 'd19_sledPush', name: `Sled Push Técnico (25m @ ${spWeight} kg)`, shortName: 'Sled Push 25m', fatigueScore: 95, timeLossSec: 75, actionTip: `Alavanca perfeita de tronco e passadas de pressão constante.` },
+        { id: 'd19_farmers', name: `Farmer's Carry (100m @ 2x ${kbWeight} kg)`, shortName: 'Farmer 100m', fatigueScore: 75, timeLossSec: 80, actionTip: `Passadas firmes e pegada segura para consolidar a sensação de leveza.` },
+        { id: 'd19_skiRow', name: 'SkiErg (500m) & Rowing (500m) Moderados', shortName: 'Ski + Row 1km', fatigueScore: 70, timeLossSec: 240, actionTip: `Giro cardiovascular moderado para sincronização de ritmo respiratório.` }
+      ];
+    }
+
+    case 21: { // Manutenção Funcional & Aeróbico Leve (Início Tapering)
+      const gobKg = Math.round((oneRMs.gobletSquat || 40) * 0.70);
+      return [
+        { id: 'd21_runZ2', name: `Corrida Z2 Tapering (25 min @ ${runningZonesKmh.Z2} km/h)`, shortName: 'Corrida Z2 25m', fatigueScore: 110, timeLossSec: 1500, actionTip: `Corrida leve para manutenção mitocondrial com redução drástica de volume (-55%).` },
+        { id: 'd21_strength', name: `Circuito Neural Leve (Goblet Squat ${gobKg}kg, Push Press, Remada 3x8)`, shortName: 'Força Leve 3x8', fatigueScore: 85, timeLossSec: 720, actionTip: `70% da carga habitual sem chegar nem perto da fadiga ou dor muscular tardia.` },
+        { id: 'd21_mobility', name: 'Fluxo Articular e Mobilidade Geral (15 min)', shortName: 'Mobilidade 15m', fatigueScore: 20, timeLossSec: 900, actionTip: `Descompressão articular preparando o corpo para os últimos dias de ativação.` }
+      ];
+    }
+
+    case 22: { // Rotação Suave de Máquinas & Corrida
+      return [
+        { id: 'd22_rotation', name: 'Rotação Contínua (2 Rounds: 5m Bike + 5m Ski + 5m Row + 5m Corrida)', shortName: 'Rotação 40 min', fatigueScore: 120, timeLossSec: 2400, actionTip: `Fluxo sanguíneo contínuo a ritmo regenerativo para nutrir tendões e ligamentos.` },
+        { id: 'd22_mobility', name: 'Soltura Miofascial Suave & Respiração Guiada', shortName: 'Soltura/Resp.', fatigueScore: 20, timeLossSec: 600, actionTip: `Redução dos níveis de cortisol e ativação do sistema nervoso parassimpático.` }
+      ];
+    }
+
+    case 23: { // Ativação Neuromuscular (Peak Sharpener)
+      return [
+        { id: 'd23_strides', name: `Tiros de Ativação GRP (4x 400m @ ${runningZonesKmh.Z3} km/h)`, shortName: '4x 400m GRP', fatigueScore: 135, timeLossSec: 480, actionTip: `Exatamente no ritmo de prova com 90s de caminhada para despertar a reatividade neural.` },
+        { id: 'd23_emom', name: 'EMOM Técnico das Estações (8 min - 30s trabalho / 30s descanso)', shortName: 'EMOM 8 Estações', fatigueScore: 110, timeLossSec: 480, actionTip: `Passagem técnica pelas 8 estações (30s cada) sem fadiga ou estresse metabólico.` },
+        { id: 'd23_warmup', name: 'Trote Leve de Aquecimento (10 min)', shortName: 'Aquecimento 10m', fatigueScore: 25, timeLossSec: 600, actionTip: `Preparação neuromuscular inicial sem elevação desnecessária da temperatura.` }
+      ];
+    }
+
+    case 24: { // Descanso Ativo / Mobilidade Pura
+      return [
+        { id: 'd24_walk', name: 'Caminhada Regenerativa ao Ar Livre (25 min)', shortName: 'Caminhada 25m', fatigueScore: 50, timeLossSec: 1500, actionTip: `Ativação suave da bomba muscular da panturrilha sem gerar microlesão muscular.` },
+        { id: 'd24_mobility', name: 'Mobilidade Suave de Quadril, Coluna & Tornozelos', shortName: 'Mobilidade 15m', fatigueScore: 20, timeLossSec: 900, actionTip: `Preservação da amplitude de movimento para o dia do simulado oficial.` }
+      ];
+    }
+
+    case 25: { // Shakeout Run (Ativação Pré-Prova)
+      return [
+        { id: 'd25_shakeout', name: `Trote de Desbloqueio Z1 (15 min @ ${runningZonesKmh.Z1} km/h)`, shortName: 'Trote Z1 15m', fatigueScore: 70, timeLossSec: 900, actionTip: `Corrida regenerativa super leve para soltar as pernas e diminuir a tensão nervosa.` },
+        { id: 'd25_strides', name: 'Retas Progressivas de Reatividade (3x 80m com retorno a passo)', shortName: '3x 80m Strides', fatigueScore: 55, timeLossSec: 180, actionTip: `Aceleração progressiva fluida para acordar os fusos neuromusculares sem gastar glicogênio.` },
+        { id: 'd25_protocol', name: 'Protocolo de Véspera (Hidratação com Eletrólitos & Jantar de Carbos)', shortName: 'Ceia & Hidratação', fatigueScore: 30, timeLossSec: 1800, actionTip: `Saturação de água e carboidratos de fácil digestão para largar 100% abastecido.` }
+      ];
+    }
+
+    case 26: // DIA DO SIMULADO OFICIAL HYROX
+    default: {
+      return [
+        { id: 'd26_run', name: `Corrida da Prova (8x 1km = 8,0 km @ ${runningZonesKmh.Z3} km/h)`, shortName: 'Corrida 8x1km', fatigueScore: 210, timeLossSec: 2280, actionTip: `Regra de Ouro: 1º km a ${goalPace}/km (+15s mais lento anti-fade) e os 7 km seguintes no GRP.` },
+        { id: 'd26_sledPush', name: `Estação 2: Sled Push Oficial (50m @ ${spWeight} kg)`, shortName: `Sled Push (${spWeight}kg)`, fatigueScore: 165, timeLossSec: 150, actionTip: `Passadas curtas em 45°. Se parar no meio, recomeçar exige o dobro de energia.` },
+        { id: 'd26_wallBalls', name: `Estação 8: Wall Balls Oficiais (100 reps @ ${wbWeight} kg)`, shortName: 'Wall Balls 100r', fatigueScore: 158, timeLossSec: 270, actionTip: `Quebra obrigatória (${activeFractionation.wallBallsSets}) com 3 a 4 respirações antes de falhar.` },
+        { id: 'd26_lunges', name: `Estação 7: Sandbag Lunges Oficiais (100m @ ${sbWeight} kg)`, shortName: `Lunges 100m (${sbWeight}kg)`, fatigueScore: 142, timeLossSec: 320, actionTip: `Mantenha o saco firme nos ombros. É proibido soltar o saco no chão para não ser penalizado.` },
+        { id: 'd26_roxzone', name: `Roxzones Oficiais (16 passagens @ meta de ${roxzoneTargetSec}s)`, shortName: 'Roxzones 16x', fatigueScore: 125, timeLossSec: 16 * roxzoneTargetSec, actionTip: `Protocolo dos 3 Passos em todas as 16 transições para economizar até 3 a 5 minutos na prova.` },
+        { id: 'd26_sledPull', name: `Estação 3: Sled Pull Oficial (50m @ ${splWeight} kg)`, shortName: `Sled Pull (${splWeight}kg)`, fatigueScore: 118, timeLossSec: 160, actionTip: `Encaixe o quadril e recue na caixa demarcada sem puxar com os braços isolados.` },
+        { id: 'd26_burpees', name: 'Estação 4: Burpee Broad Jumps Oficiais (80m)', shortName: 'Burpees 80m', fatigueScore: 112, timeLossSec: 340, actionTip: `Subida com pés afastados (step-up) para não sobrecarregar os flexores do quadril.` },
+        { id: 'd26_farmers', name: `Estação 6: Farmer's Carry Oficial (200m @ 2x ${kbWeight} kg)`, shortName: 'Farmer 200m', fatigueScore: 82, timeLossSec: 160, actionTip: `Passadas firmes e rápidas com escápulas travadas. Não solte os pesos.` },
+        { id: 'd26_rowing', name: 'Estação 5: Rowing Oficial (1.000m)', shortName: 'Rowing 1km', fatigueScore: 56, timeLossSec: 235, actionTip: `Ritmo diesel a 24-26 spm. Use a estação para estabilizar o padrão ventilatório.` },
+        { id: 'd26_skiErg', name: 'Estação 1: SkiErg Oficial (1.000m)', shortName: 'SkiErg 1km', fatigueScore: 50, timeLossSec: 235, actionTip: `Use o peso corporal e flexão do quadril. Guarde as pernas para os trenós.` }
+      ];
+    }
+  }
+};
+
 // Motor Analítico de Cálculo de Métricas e Radar 5D para qualquer Aluno/Atleta guardado no Banco de Dados (Feature 006)
 const computeRecordSummaryMetrics = (record) => {
   if (!record || typeof record !== 'object') {
@@ -1523,7 +1797,7 @@ const renderWorkoutPoster9x16ToCanvas = (payload) => {
   const zonePace = kmhToPaceStr(zoneKmh);
   const usedKmh = currentLog.usedSpeedKmh || zoneKmh;
   const usedZone = currentLog.usedZone || (prescribedZoneKey === 'REST' ? 'Z1' : prescribedZoneKey);
-  const zoneShortName = zoneMeta.short || zoneMeta.shortLabel || prescribedZoneKey;
+  const zoneShortName = zoneMeta.short || zoneMeta.shortLabel || prescribedZoneKey || 'Z3';
   const plannedOrLoggedDist = currentLog.distanceKm !== undefined ? currentLog.distanceKm : getDayPlannedRunDistanceKm(workout);
   const rpeVal = currentLog.rpe || (workout.loadIndex === 0 ? 6 : workout.loadIndex + 9);
   const durVal = currentLog.duration || workout.durationMin;
@@ -1972,6 +2246,18 @@ function App() {
   const [evolutionMetric, setEvolutionMetric] = useState('SRPE'); // SRPE, STRENGTH_RM, PACE, SPEED_KMH
   const [compositionMode, setCompositionMode] = useState('MUSCLE_SETS'); // MUSCLE_SETS, HR_ZONES
   const [paretoMetric, setParetoMetric] = useState('FATIGUE'); // FATIGUE, TIME_LOSS
+  // Feature 009: Análise de Pareto Dinâmica por Dia de Treino vs. Simulado Completo
+  const [paretoScope, setParetoScope] = useState('WORKOUT_DAY'); // 'WORKOUT_DAY' | 'COMPETITION'
+  const [paretoDayNum, setParetoDayNum] = useState(() => {
+    const saved = safeGetItem('hyrox_selected_day', null);
+    const num = saved ? parseInt(saved, 10) : 1;
+    return !isNaN(num) && num >= 1 && num <= 26 ? num : 1;
+  });
+
+  // Mantém paretoDayNum sincronizado com o dia ativo do plano
+  useEffect(() => {
+    setParetoDayNum(selectedDayNum);
+  }, [selectedDayNum]);
   const [hoveredDayNum, setHoveredDayNum] = useState(null);
   
   // Timer embutido para EMOMs / Transições + Screen Wake Lock Mobile (US2 - T009)
@@ -4019,61 +4305,88 @@ function App() {
                   return (
                     React.createElement("div", { "key": z.id, "className": "bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 flex items-center justify-between gap-2" }, React.createElement("div", null, React.createElement("span", { "className": "text-[11px] font-black text-white block" }, z.short), React.createElement("span", { "className": "text-[10px] font-mono text-cyan-300" }, kmhToPaceStr(zKmh), "/km")), React.createElement("div", { "className": "flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700" }, React.createElement("input", { "type": "number", "step": "0.1", "min": "4", "max": "25", "value": zKmh, "onChange": (e) => handleZoneSpeedChange(z.id, e.target.value), "className": "w-11 bg-transparent text-yellow-400 font-mono font-black text-xs text-right focus:outline-none" }), React.createElement("span", { "className": "text-[10px] text-slate-400 font-mono" }, "km/h")))
                   );
-                }))), React.createElement("div", { "className": "grid grid-cols-1 md:grid-cols-3 gap-4" }, React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5" }, React.createElement("span", { "className": "text-xs text-slate-400 uppercase font-bold" }, "Aderência & Distância Confirmada"), React.createElement("div", { "className": "text-3xl font-black text-yellow-400 mt-1" }, stats.doneCount, " / ", stats.totalDays, " ", React.createElement("span", { "className": "text-base font-normal text-slate-400" }, "dias (", stats.progressPct, "%)")), React.createElement("div", { "className": "w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mt-2.5" }, React.createElement("div", { "className": "h-full bg-yellow-400", "style": { width: `${stats.progressPct}%` } })), React.createElement("p", { "className": "text-xs text-slate-400 mt-2 font-mono" }, "Corrida Confirmada: ", React.createElement("strong", { "className": "text-emerald-400" }, stats.confirmedDistanceKm, " km"), " / ", stats.plannedDistanceKm, " km")), React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5" }, React.createElement("span", { "className": "text-xs text-slate-400 uppercase font-bold" }, "Carga Interna Confirmada (sRPE)"), React.createElement("div", { "className": "text-3xl font-black text-cyan-400 mt-1" }, stats.loggedLoadUnits.toLocaleString(), " ", React.createElement("span", { "className": "text-sm font-normal text-slate-400" }, "/ ", stats.plannedLoadUnits.toLocaleString(), " UA")), React.createElement("p", { "className": "text-xs text-slate-400 mt-2" }, "Calculado pelos treinos salvos/confirmados (RPE Real × Duração Real).")), React.createElement("div", { "className": "bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between" }, React.createElement("span", { "className": "text-xs text-slate-400 uppercase font-bold" }, "Velocidade Média Confirmada vs. GRP"), React.createElement("div", { "className": "text-2xl font-black text-emerald-400 mt-1 font-mono" }, stats.avgConfirmedSpeedKmh, " km/h ", React.createElement("span", { "className": "text-sm font-normal text-slate-400" }, "(", stats.avgConfirmedPaceStr, "/km)")), React.createElement("p", { "className": "text-xs text-slate-400 mt-1 leading-relaxed" }, "Alvo GRP (Z3): ", React.createElement("strong", { "className": "text-white" }, runningZonesKmh.Z3, " km/h (", goalPace, "/km)"), " • Z4 Limiar: ", React.createElement("strong", { "className": "text-amber-300" }, runningZonesKmh.Z4, " km/h")))), React.createElement("div", { "className": "bg-slate-900/95 border border-yellow-500/40 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5" }, React.createElement("div", { "className": "flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800" }, React.createElement("div", null, React.createElement("div", { "className": "flex flex-wrap items-center gap-2 mb-1" }, React.createElement("span", { "className": "text-[11px] font-black uppercase px-2.5 py-0.5 rounded bg-yellow-400 text-slate-950" }, "Diagrama de Pareto 80/20 • Seleção & Eficiência de Treino"), React.createElement("span", { "className": "text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40" }, analyticsData.vital80Exercises.length, " de 10 segmentos = 80% do impacto")), React.createElement("h3", { "className": "text-base sm:text-xl font-black text-white uppercase tracking-tight" }, "Gráfico de Pareto para Eficiência de Exercícios (Fadiga Acumulada & Tempo Perdido)"), React.createElement("p", { "className": "text-xs text-slate-400 mt-0.5" }, "O Eixo X ordena as estações/corrida do maior para o menor impacto; a Linha Acumulada (Eixo Y direito) isola os exercícios que concentram ", React.createElement("strong", null, "80% do seu desgaste ou tempo perdido"), ".")), React.createElement("div", { "className": "flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0 self-start lg:self-center" }, React.createElement("button", { "onClick": () => setParetoMetric('FATIGUE'), "className": `px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      paretoMetric === 'FATIGUE'
-                        ? 'bg-yellow-400 text-slate-950 shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }` }, "Fadiga / Esforço Acumulado"), React.createElement("button", { "onClick": () => setParetoMetric('TIME_LOSS'), "className": `px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      paretoMetric === 'TIME_LOSS'
-                        ? 'bg-cyan-400 text-slate-950 shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }` }, "Tempo Perdido na Prova (s)"))), React.createElement("div", { "className": "bg-slate-950/90 border border-slate-800/90 rounded-xl p-3 sm:p-4" }, (() => {
-                  const items = analyticsData.paretoItems;
-                  const maxVal = Math.max(1, items[0]?.value || 100);
-                  const chartW = 760;
-                  const chartH = 270;
-                  const padL = 46;
-                  const padR = 48;
-                  const padT = 24;
-                  const padB = 54;
-                  const plotW = chartW - padL - padR;
-                  const plotH = chartH - padT - padB;
-                  const slotW = plotW / items.length;
-                  const barW = Math.min(44, slotW * 0.62);
-                  const y80 = padT + plotH * (1 - 0.8);
+                }))), React.createElement("div", { "className": "grid grid-cols-1 md:grid-cols-3 gap-4" }, React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5" }, React.createElement("span", { "className": "text-xs text-slate-400 uppercase font-bold" }, "Aderência & Distância Confirmada"), React.createElement("div", { "className": "text-3xl font-black text-yellow-400 mt-1" }, stats.doneCount, " / ", stats.totalDays, " ", React.createElement("span", { "className": "text-base font-normal text-slate-400" }, "dias (", stats.progressPct, "%)")), React.createElement("div", { "className": "w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mt-2.5" }, React.createElement("div", { "className": "h-full bg-yellow-400", "style": { width: `${stats.progressPct}%` } })), React.createElement("p", { "className": "text-xs text-slate-400 mt-2 font-mono" }, "Corrida Confirmada: ", React.createElement("strong", { "className": "text-emerald-400" }, stats.confirmedDistanceKm, " km"), " / ", stats.plannedDistanceKm, " km")), React.createElement("div", { "className": "bg-slate-900 border border-slate-800 rounded-2xl p-5" }, React.createElement("span", { "className": "text-xs text-slate-400 uppercase font-bold" }, "Carga Interna Confirmada (sRPE)"), React.createElement("div", { "className": "text-3xl font-black text-cyan-400 mt-1" }, stats.loggedLoadUnits.toLocaleString(), " ", React.createElement("span", { "className": "text-sm font-normal text-slate-400" }, "/ ", stats.plannedLoadUnits.toLocaleString(), " UA")), React.createElement("p", { "className": "text-xs text-slate-400 mt-2" }, "Calculado pelos treinos salvos/confirmados (RPE Real × Duração Real).")), React.createElement("div", { "className": "bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between" }, React.createElement("span", { "className": "text-xs text-slate-400 uppercase font-bold" }, "Velocidade Média Confirmada vs. GRP"), React.createElement("div", { "className": "text-2xl font-black text-emerald-400 mt-1 font-mono" }, stats.avgConfirmedSpeedKmh, " km/h ", React.createElement("span", { "className": "text-sm font-normal text-slate-400" }, "(", stats.avgConfirmedPaceStr, "/km)")), React.createElement("p", { "className": "text-xs text-slate-400 mt-1 leading-relaxed" }, "Alvo GRP (Z3): ", React.createElement("strong", { "className": "text-white" }, runningZonesKmh.Z3, " km/h (", goalPace, "/km)"), " • Z4 Limiar: ", React.createElement("strong", { "className": "text-amber-300" }, runningZonesKmh.Z4, " km/h")))), React.createElement("div", { "className": "bg-slate-900/95 border border-yellow-500/40 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5" }, React.createElement("div", { "className": "flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800" }, React.createElement("div", null, React.createElement("div", { "className": "flex flex-wrap items-center gap-2 mb-1.5" }, React.createElement("span", { "className": "text-[11px] font-black uppercase px-2.5 py-0.5 rounded bg-yellow-400 text-slate-950" }, "Diagrama de Pareto 80/20 • Eficiência da Sessão"), React.createElement("span", { "className": "text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40" }, analyticsData.vital80Exercises.length, " de ", analyticsData.paretoItems.length, " itens = 80% do desgaste"), React.createElement("span", { "className": "text-[11px] font-bold px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" }, paretoScope === 'WORKOUT_DAY' ? `Dia ${paretoDayNum} de 26` : 'Simulado Completo')), React.createElement("h3", { "className": "text-base sm:text-xl font-black text-white uppercase tracking-tight" }, "Gráfico de Pareto para Eficiência de Exercícios por Treino"), React.createElement("p", { "className": "text-xs text-slate-400 mt-0.5" }, paretoScope === 'WORKOUT_DAY' ? (
+                      React.createElement(React.Fragment, null, "Decomposição específica dos blocos, corrida e sobrecargas do ", React.createElement("strong", null, "Dia ", paretoDayNum, " (", analyticsData.paretoTargetDay?.type, ")"), ". O Eixo X ordena os exercícios do dia pelo maior impacto; a Linha Ciano isola os ", React.createElement("strong", null, "20% vitais que acumulam 80% do estresse"), ".")
+                    ) : (
+                      React.createElement(React.Fragment, null, "Visão macro das 8 estações oficiais + Corrida 8x1km + 16 Roxzones da prova competitiva.")
+                    ))), React.createElement("div", { "className": "flex flex-wrap items-center gap-2 self-start lg:self-center shrink-0" }, React.createElement("div", { "className": "flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold" }, React.createElement("button", { "onClick": () => setParetoScope('WORKOUT_DAY'), "className": `px-3 py-1.5 rounded-lg transition-all ${
+                        paretoScope === 'WORKOUT_DAY'
+                          ? 'bg-yellow-400 text-slate-950 shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }` }, "Treino do Dia"), React.createElement("button", { "onClick": () => setParetoScope('COMPETITION'), "className": `px-3 py-1.5 rounded-lg transition-all ${
+                        paretoScope === 'COMPETITION'
+                          ? 'bg-yellow-400 text-slate-950 shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }` }, "Simulado Completo")), paretoScope === 'WORKOUT_DAY' && (
+                    React.createElement("div", { "className": "flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800" }, React.createElement("span", { "className": "text-[11px] text-yellow-400 font-bold shrink-0" }, "Dia:"), React.createElement("select", { "value": paretoDayNum, "onChange": (e) => setParetoDayNum(Number(e.target.value)), "className": "bg-slate-900 text-white font-bold text-xs rounded-lg px-2 py-1 border border-slate-700 focus:outline-none focus:border-yellow-400 max-w-[200px] sm:max-w-[240px]" }, WORKOUT_DAYS.map((d) => (
+                          React.createElement("option", { "key": d.dayNum, "value": d.dayNum }, "Dia ", d.dayNum, " (", d.date, ") - ", d.type.slice(0, 22))
+                        ))))
+                  ), React.createElement("div", { "className": "flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold" }, React.createElement("button", { "onClick": () => setParetoMetric('FATIGUE'), "className": `px-2.5 py-1.5 rounded-lg transition-all ${
+                        paretoMetric === 'FATIGUE'
+                          ? 'bg-cyan-400 text-slate-950 shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`, "title": "Pondera a intensidade metabólica, carga absoluta e desgaste neuromuscular" }, "Fadiga / Carga"), React.createElement("button", { "onClick": () => setParetoMetric('TIME_LOSS'), "className": `px-2.5 py-1.5 rounded-lg transition-all ${
+                        paretoMetric === 'TIME_LOSS'
+                          ? 'bg-cyan-400 text-slate-950 shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`, "title": "Tempo real ou planejado em segundos despendido no exercício" }, "Tempo Gasto (s)")))), analyticsData.paretoIsRestDay && paretoScope === 'WORKOUT_DAY' ? (
+                React.createElement("div", { "className": "bg-slate-950/90 border border-emerald-500/40 rounded-xl p-6 text-center space-y-4" }, React.createElement("div", { "className": "inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mb-1" }, React.createElement("svg", { "className": "w-6 h-6", "fill": "none", "stroke": "currentColor", "viewBox": "0 0 24 24" }, React.createElement("path", { "strokeLinecap": "round", "strokeLinejoin": "round", "strokeWidth": "2", "d": "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" }))), React.createElement("div", null, React.createElement("span", { "className": "text-[11px] font-black uppercase px-2.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/40" }, "Dia ", paretoDayNum, " • Descanso Absoluto & Supercompensação"), React.createElement("h4", { "className": "text-lg font-black text-white mt-2" }, "Foco Vital 80%: Regeneração do Sistema Nervoso Central"), React.createElement("p", { "className": "text-xs text-slate-300 max-w-xl mx-auto mt-1 leading-relaxed" }, "Nesta sessão de descanso programado, 80% do resultado do atleta vem da ", React.createElement("strong", null, "recuperação passiva profunda (8h+ sono)"), ", ", React.createElement("strong", null, "reposição de glicogênio muscular (4-5g carbos/kg)"), " e ", React.createElement("strong", null, "hidratação celular com eletrólitos (3-4L)"), ".")), React.createElement("div", { "className": "grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto pt-2 text-left" }, analyticsData.paretoItems.map((it) => (
+                      React.createElement("div", { "key": it.id, "className": "bg-slate-900/90 border border-emerald-500/30 rounded-xl p-3" }, React.createElement("span", { "className": "text-xs font-black text-emerald-400 block mb-1" }, it.shortName), React.createElement("p", { "className": "text-[11px] text-slate-300 leading-relaxed" }, it.actionTip))
+                    ))), React.createElement("div", { "className": "pt-2 flex flex-wrap items-center justify-center gap-3" }, React.createElement("button", { "onClick": () => setParetoScope('COMPETITION'), "className": "px-4 py-2 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs transition-all shadow" }, "Ver Pareto do Simulado Oficial Completo →"), paretoDayNum < 26 && (
+                      React.createElement("button", { "onClick": () => setParetoDayNum((prev) => Math.min(26, prev + 1)), "className": "px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all" }, "Analisar Próximo Treino Ativo (Dia ", paretoDayNum + 1, ") →")
+                    )))
+              ) : (
+                /* SVG do Gráfico de Pareto (Barras Decrescentes + Curva Acumulada 0-100% + Corte 80%) */
+                React.createElement("div", { "className": "bg-slate-950/90 border border-slate-800/90 rounded-xl p-3 sm:p-4" }, (() => {
+                    const items = analyticsData.paretoItems;
+                    const maxVal = Math.max(1, items[0]?.value || 100);
+                    const chartW = 760;
+                    const chartH = 270;
+                    const padL = 46;
+                    const padR = 48;
+                    const padT = 24;
+                    const padB = 54;
+                    const plotW = chartW - padL - padR;
+                    const plotH = chartH - padT - padB;
+                    const slotW = plotW / Math.max(1, items.length);
+                    const barW = Math.min(52, Math.max(16, slotW * 0.62));
+                    const y80 = padT + plotH * (1 - 0.8);
 
-                  const linePoints = items
-                    .map((it, idx) => {
-                      const cx = padL + idx * slotW + slotW / 2;
-                      const cy = padT + plotH * (1 - it.cumulativePct / 100);
-                      return `${cx},${cy}`;
-                    })
-                    .join(' ');
-
-                  return (
-                    React.createElement("svg", { "viewBox": `0 0 ${chartW} ${chartH}`, "className": "w-full h-auto overflow-visible" }, React.createElement("defs", null, React.createElement("linearGradient", { "id": "paretoVitalGrad", "x1": "0", "y1": "0", "x2": "0", "y2": "1" }, React.createElement("stop", { "offset": "0%", "stopColor": "#facc15", "stopOpacity": "0.95" }), React.createElement("stop", { "offset": "100%", "stopColor": "#f43f5e", "stopOpacity": "0.85" })), React.createElement("linearGradient", { "id": "paretoTrivialGrad", "x1": "0", "y1": "0", "x2": "0", "y2": "1" }, React.createElement("stop", { "offset": "0%", "stopColor": "#38bdf8", "stopOpacity": "0.55" }), React.createElement("stop", { "offset": "100%", "stopColor": "#1e293b", "stopOpacity": "0.75" }))), [0, 25, 50, 75, 100].map((pct) => {
-                        const y = padT + plotH * (1 - pct / 100);
-                        const leftVal = Math.round((maxVal * pct) / 100);
-                        return (
-                          React.createElement("g", { "key": pct }, React.createElement("line", { "x1": padL, "y1": y, "x2": chartW - padR, "y2": y, "stroke": "#1e293b", "strokeDasharray": "3 3" }), React.createElement("text", { "x": padL - 6, "y": y + 3, "textAnchor": "end", "fill": "#64748b", "fontSize": "10", "fontFamily": "monospace" }, paretoMetric === 'TIME_LOSS' ? `${leftVal}s` : leftVal), React.createElement("text", { "x": chartW - padR + 6, "y": y + 3, "textAnchor": "start", "fill": "#94a3b8", "fontSize": "10", "fontFamily": "monospace" }, pct, "%"))
-                        );
-                      }), React.createElement("line", { "x1": padL, "y1": y80, "x2": chartW - padR, "y2": y80, "stroke": "#22d3ee", "strokeWidth": "1.5", "strokeDasharray": "6 4" }), React.createElement("rect", { "x": chartW - padR - 118, "y": y80 - 16, "width": "114", "height": "14", "rx": "4", "fill": "#083344", "stroke": "#22d3ee", "strokeWidth": "0.8" }), React.createElement("text", { "x": chartW - padR - 61, "y": y80 - 6, "textAnchor": "middle", "fill": "#67e8f9", "fontSize": "9", "fontWeight": "bold", "fontFamily": "monospace" }, "LIMIAR PARETO 80%"), items.map((it, idx) => {
-                        const bh = Math.max(6, (it.value / maxVal) * plotH);
-                        const bx = padL + idx * slotW + (slotW - barW) / 2;
-                        const by = padT + plotH - bh;
-                        const cx = padL + idx * slotW + slotW / 2;
-                        return (
-                          React.createElement("g", { "key": it.id }, React.createElement("rect", { "x": bx, "y": by, "width": barW, "height": bh, "rx": "5", "fill": it.isVital80 ? 'url(#paretoVitalGrad)' : 'url(#paretoTrivialGrad)', "stroke": it.isVital80 ? '#fde047' : '#334155', "strokeWidth": "1" }), React.createElement("text", { "x": cx, "y": by - 5, "textAnchor": "middle", "fill": it.isVital80 ? '#fde047' : '#94a3b8', "fontSize": "9.5", "fontWeight": "bold", "fontFamily": "monospace" }, paretoMetric === 'TIME_LOSS' ? `${it.value}s` : `${it.sharePct}%`), React.createElement("text", { "x": cx, "y": padT + plotH + 16, "textAnchor": "middle", "fill": it.isVital80 ? '#f8fafc' : '#94a3b8', "fontSize": "9.5", "fontWeight": it.isVital80 ? 'bold' : 'normal' }, it.shortName), React.createElement("text", { "x": cx, "y": padT + plotH + 29, "textAnchor": "middle", "fill": it.isVital80 ? '#facc15' : '#64748b', "fontSize": "8.5", "fontFamily": "monospace" }, it.isVital80 ? '★ VITAL 80%' : '20% Rest.'))
-                        );
-                      }), React.createElement("polyline", { "fill": "none", "stroke": "#22d3ee", "strokeWidth": "2.8", "points": linePoints }), items.map((it, idx) => {
+                    const linePoints = items
+                      .map((it, idx) => {
                         const cx = padL + idx * slotW + slotW / 2;
                         const cy = padT + plotH * (1 - it.cumulativePct / 100);
-                        return (
-                          React.createElement("g", { "key": `pt-${it.id}` }, React.createElement("circle", { "cx": cx, "cy": cy, "r": "4.5", "fill": it.isVital80 ? '#22d3ee' : '#0f172a', "stroke": "#22d3ee", "strokeWidth": "2" }), React.createElement("text", { "x": cx, "y": cy - 8, "textAnchor": "middle", "fill": "#67e8f9", "fontSize": "9", "fontWeight": "bold", "fontFamily": "monospace" }, Math.round(it.cumulativePct), "%"))
-                        );
-                      }))
-                  );
-                })(), React.createElement("div", { "className": "flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400" }, React.createElement("div", { "className": "flex flex-wrap items-center gap-4" }, React.createElement("span", { "className": "flex items-center gap-1.5" }, React.createElement("span", { "className": "w-3 h-3 rounded-sm bg-gradient-to-b from-yellow-400 to-rose-500 inline-block" }), React.createElement("strong", { "className": "text-slate-200" }, "Barras Douradas/Rosa:"), " Concentram 80% do desgaste/tempo perdido (Foco Prioritário)"), React.createElement("span", { "className": "flex items-center gap-1.5" }, React.createElement("span", { "className": "w-3 h-0.5 bg-cyan-400 inline-block" }), React.createElement("strong", { "className": "text-cyan-300" }, "Linha Ciano:"), " Percentagem Acumulada (0% → 100%)")), React.createElement("span", { "className": "font-mono text-slate-400" }, "Perfil: ", currentDivision.name, " • GRP ", goalPace, "/km • Roxzone ", roxzoneSim.secPerPassage, "s"))), React.createElement("div", { "className": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" }, analyticsData.vital80Exercises.slice(0, 3).map((ex, idx) => (
+                        return `${cx},${cy}`;
+                      })
+                      .join(' ');
+
+                    return (
+                      React.createElement("svg", { "viewBox": `0 0 ${chartW} ${chartH}`, "className": "w-full h-auto overflow-visible" }, React.createElement("defs", null, React.createElement("linearGradient", { "id": "paretoVitalGrad", "x1": "0", "y1": "0", "x2": "0", "y2": "1" }, React.createElement("stop", { "offset": "0%", "stopColor": "#facc15", "stopOpacity": "0.95" }), React.createElement("stop", { "offset": "100%", "stopColor": "#f43f5e", "stopOpacity": "0.85" })), React.createElement("linearGradient", { "id": "paretoTrivialGrad", "x1": "0", "y1": "0", "x2": "0", "y2": "1" }, React.createElement("stop", { "offset": "0%", "stopColor": "#38bdf8", "stopOpacity": "0.55" }), React.createElement("stop", { "offset": "100%", "stopColor": "#1e293b", "stopOpacity": "0.75" }))), [0, 25, 50, 75, 100].map((pct) => {
+                          const y = padT + plotH * (1 - pct / 100);
+                          const leftVal = Math.round((maxVal * pct) / 100);
+                          return (
+                            React.createElement("g", { "key": pct }, React.createElement("line", { "x1": padL, "y1": y, "x2": chartW - padR, "y2": y, "stroke": "#1e293b", "strokeDasharray": "3 3" }), React.createElement("text", { "x": padL - 6, "y": y + 3, "textAnchor": "end", "fill": "#64748b", "fontSize": "10", "fontFamily": "monospace" }, paretoMetric === 'TIME_LOSS' ? `${leftVal}s` : leftVal), React.createElement("text", { "x": chartW - padR + 6, "y": y + 3, "textAnchor": "start", "fill": "#94a3b8", "fontSize": "10", "fontFamily": "monospace" }, pct, "%"))
+                          );
+                        }), React.createElement("line", { "x1": padL, "y1": y80, "x2": chartW - padR, "y2": y80, "stroke": "#22d3ee", "strokeWidth": "1.5", "strokeDasharray": "6 4" }), React.createElement("rect", { "x": chartW - padR - 118, "y": y80 - 16, "width": "114", "height": "14", "rx": "4", "fill": "#083344", "stroke": "#22d3ee", "strokeWidth": "0.8" }), React.createElement("text", { "x": chartW - padR - 61, "y": y80 - 6, "textAnchor": "middle", "fill": "#67e8f9", "fontSize": "9", "fontWeight": "bold", "fontFamily": "monospace" }, "LIMIAR PARETO 80%"), items.map((it, idx) => {
+                          const bh = Math.max(6, (it.value / maxVal) * plotH);
+                          const bx = padL + idx * slotW + (slotW - barW) / 2;
+                          const by = padT + plotH - bh;
+                          const cx = padL + idx * slotW + slotW / 2;
+                          return (
+                            React.createElement("g", { "key": it.id }, React.createElement("rect", { "x": bx, "y": by, "width": barW, "height": bh, "rx": "5", "fill": it.isVital80 ? 'url(#paretoVitalGrad)' : 'url(#paretoTrivialGrad)', "stroke": it.isVital80 ? '#fde047' : '#334155', "strokeWidth": "1" }), React.createElement("text", { "x": cx, "y": by - 5, "textAnchor": "middle", "fill": it.isVital80 ? '#fde047' : '#94a3b8', "fontSize": "9.5", "fontWeight": "bold", "fontFamily": "monospace" }, paretoMetric === 'TIME_LOSS' ? `${it.value}s` : `${it.sharePct}%`), React.createElement("text", { "x": cx, "y": padT + plotH + 16, "textAnchor": "middle", "fill": it.isVital80 ? '#f8fafc' : '#94a3b8', "fontSize": items.length > 7 ? '8.5' : '9.5', "fontWeight": it.isVital80 ? 'bold' : 'normal' }, it.shortName), React.createElement("text", { "x": cx, "y": padT + plotH + 29, "textAnchor": "middle", "fill": it.isVital80 ? '#facc15' : '#64748b', "fontSize": "8.5", "fontFamily": "monospace" }, it.isVital80 ? '★ VITAL 80%' : '20% Rest.'))
+                          );
+                        }), React.createElement("polyline", { "fill": "none", "stroke": "#22d3ee", "strokeWidth": "2.8", "points": linePoints }), items.map((it, idx) => {
+                          const cx = padL + idx * slotW + slotW / 2;
+                          const cy = padT + plotH * (1 - it.cumulativePct / 100);
+                          return (
+                            React.createElement("g", { "key": `pt-${it.id}` }, React.createElement("circle", { "cx": cx, "cy": cy, "r": "4.5", "fill": it.isVital80 ? '#22d3ee' : '#0f172a', "stroke": "#22d3ee", "strokeWidth": "2" }), React.createElement("text", { "x": cx, "y": cy - 8, "textAnchor": "middle", "fill": "#67e8f9", "fontSize": "9", "fontWeight": "bold", "fontFamily": "monospace" }, Math.round(it.cumulativePct), "%"))
+                          );
+                        }))
+                    );
+                  })(), React.createElement("div", { "className": "flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400" }, React.createElement("div", { "className": "flex flex-wrap items-center gap-4" }, React.createElement("span", { "className": "flex items-center gap-1.5" }, React.createElement("span", { "className": "w-3 h-3 rounded-sm bg-gradient-to-b from-yellow-400 to-rose-500 inline-block" }), React.createElement("strong", { "className": "text-slate-200" }, "Barras Douradas/Rosa:"), " Concentram 80% do desgaste/tempo da sessão (Foco Prioritário)"), React.createElement("span", { "className": "flex items-center gap-1.5" }, React.createElement("span", { "className": "w-3 h-0.5 bg-cyan-400 inline-block" }), React.createElement("strong", { "className": "text-cyan-300" }, "Linha Ciano:"), " Percentual Acumulado (0% → 100%)")), React.createElement("span", { "className": "font-mono text-slate-400" }, paretoScope === 'WORKOUT_DAY'
+                        ? `Treino Dia ${paretoDayNum}/26 • ${analyticsData.paretoTargetDay?.type || ''}`
+                        : `Perfil: ${currentDivision.name} • GRP ${goalPace}/km • Roxzone ${roxzoneSim.secPerPassage}s`)))
+              ), React.createElement("div", { "className": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" }, analyticsData.vital80Exercises.slice(0, 3).map((ex, idx) => (
                   React.createElement("div", { "key": ex.id, "className": "bg-slate-950/90 border border-yellow-500/30 rounded-xl p-3.5 flex flex-col justify-between gap-2" }, React.createElement("div", { "className": "flex items-center justify-between gap-2" }, React.createElement("span", { "className": "text-xs font-black uppercase text-yellow-400" }, "#", idx + 1, " Prioridade • ", ex.name), React.createElement("span", { "className": "text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30" }, ex.sharePct, "% (Acum: ", Math.round(ex.cumulativePct), "%)")), React.createElement("p", { "className": "text-xs text-slate-300 leading-relaxed" }, ex.actionTip))
                 )))), React.createElement("div", { "className": "grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch" }, React.createElement("div", { "className": "bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between space-y-4" }, React.createElement("div", null, React.createElement("div", { "className": "flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800" }, React.createElement("div", null, React.createElement("span", { "className": "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30" }, "1A • Gráfico de Linha (Line Chart)"), React.createElement("h3", { "className": "text-base font-black text-white uppercase mt-1" }, "Evolução de Carga, Velocidade (km/h), Força & Pace")), React.createElement("div", { "className": "flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold self-start" }, [
                         { id: 'SRPE', label: 'Carga (sRPE)' },

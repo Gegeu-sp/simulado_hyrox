@@ -63,7 +63,16 @@ A aba **Analytics & Gráficos (7)** implementa um motor vetorial interativo em *
 
 Todas as atualizações estruturais e evolutivas do projeto são registradas abaixo:
 
-- **v1.7.0 (Atual) — Padronização Integral da Terminologia Técnica em Português do Brasil (`008-ptbr-terminology-standardization`)**:
+- **v1.8.0 (Atual) — Gráfico e Análise de Pareto (80/20) Dinâmico por Dia de Treino (`009-daily-workout-pareto-analysis`)**:
+  - **Decomposição Dinâmica e Específica para Cada um dos 26 Dias de Treino**: O Gráfico de Pareto na aba *Analytics & Gráficos (7)* agora analisa os blocos, exercícios de força (`1RMs`), ergômetros, corrida prescrita e cargas oficiais da sessão diária selecionada (Dia 1 a Dia 26), permitindo otimizar a eficiência de cada treino individual;
+  - **Controles Interativos Integrados**:
+    - **Seletor de Escopo**: Alternância com 1 clique entre **"Treino do Dia (Dia X)"** (padrão) e **"Simulado Oficial Completo (Prova 8x1km + 8 Estações)"**;
+    - **Seletor Rápido de Dia**: Menu dropdown embutido no cabeçalho do gráfico com data e título da sessão para navegar instantaneamente entre qualquer um dos 26 dias sem sair da aba de Analytics;
+    - **Alternância de Métrica**: Análise por **"Fadiga / Carga Interna da Sessão"** (intensidade metabólica ponderada) vs. **"Tempo Gasto no Treino (s)"**;
+  - **Curva Acumulada, Limiar 80% e Fechamento Matemático Rigoroso em 100.0%**: Ordenação decrescente das barras (`★ Vital 80%` em degradê dourado/vermelho vs. `20% Restante` em azul/ardósia), traçado contínuo ciano da porcentagem acumulada (`0% → 100%`) e linha tracejada indicadora do corte de 80%;
+  - **Cartão Informativo para Dias de Descanso (Dias 6, 13, 20 e 24)**: Prescrição do sono profundo, reposição de glicogênio e hidratação celular como os fatores vitais de supercompensação do SNC;
+  - **Diagnóstico Tático da Sessão**: Exibição dos cards de orientação prioritária com dicas técnicas preventivas e foco anti-desperdício de energia para cada exercício vital do treino.
+- **v1.7.0 — Padronização Integral da Terminologia Técnica em Português do Brasil (`008-ptbr-terminology-standardization`)**:
   - **Adequação Oficial aos Padrões das Academias e Treinamento Funcional no Brasil**: Substituição de 100% dos termos lusitanos europeus por termos técnicos nacionais consagrados:
     - `"Rondas" / "Ronda"` → **`"Rounds" / "Round"`** (ex.: *5 Rounds*, *Round 1*, *entre rounds*);
     - `"Passadeira"` → **`"Esteira"`**;
