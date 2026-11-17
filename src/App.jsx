@@ -1354,9 +1354,7 @@ const computeRecordSummaryMetrics = (record) => {
   WORKOUT_DAYS.forEach((d) => {
     const isDone = Boolean(completed[d.dayNum]);
     const log = logs[d.dayNum] || {};
-    const hasLog = log.rpe !== undefined || log.duration !== undefined || log.usedSpeedKmh !== undefined || log.distanceKm !== undefined;
-    const isConfirmed = isDone || hasLog;
-    if (isConfirmed) {
+    if (isDone) {
       const rpe = log.rpe !== undefined ? Number(log.rpe) : (d.loadIndex === 0 ? 0 : d.loadIndex + 9);
       const dur = log.duration !== undefined ? Number(log.duration) : d.durationMin;
       loggedLoadUnits += Math.round(rpe * dur);
@@ -1385,12 +1383,12 @@ const computeRecordSummaryMetrics = (record) => {
   const bss = Number(rms.bulgarianSplitSquat) || 60;
 
   const strengthRatio = (bs / (weight * 1.65) + dl / (weight * 2.05) + rdl / (weight * 1.45)) / 3;
-  const strengthScore = Math.min(100, Math.max(35, Math.round(strengthRatio * 82)));
+  const strengthScore = Math.min(100, Math.max(25, Math.round(strengthRatio * 82)));
 
   const grpSec = paceStrToSeconds(paceStr, 285);
-  const paceScore = Math.min(100, Math.max(40, Math.round(((375 - grpSec) / (375 - 220)) * 60 + 40)));
-  const z2SpeedBonus = Math.min(12, Math.max(-8, Math.round(((Number(zones.Z2) || 11.0) - 10.5) * 2.5)));
-  const enduranceScore = Math.min(100, Math.max(40, Math.round(paceScore * 0.75 + (progressPct * 0.25) + 12 + z2SpeedBonus)));
+  const paceScore = Math.min(100, Math.max(30, Math.round(((375 - grpSec) / (375 - 220)) * 60 + 35)));
+  const z2SpeedBonus = Math.min(10, Math.max(-8, Math.round(((Number(zones.Z2) || 11.0) - 10.5) * 2.0)));
+  const enduranceScore = Math.min(100, Math.max(20, Math.round(paceScore * 0.65 + (progressPct * 0.35) + z2SpeedBonus)));
 
   const roxScore = Math.min(100, Math.max(40, Math.round(((45 - roxSec) / (45 - 15)) * 55 + 45)));
   const unilateralRatio = ((lunge + bss) / 2) / (weight * 0.9);
@@ -2280,6 +2278,10 @@ function App() {
       };
       let nextDb;
       if (idx >= 0) {
+        if (prevDb[idx].recordType === 'SNAPSHOT') {
+          // Protege snapshots históricos congelados contra sobrescrita acidental pelo Auto-Save
+          return prevDb;
+        }
         nextDb = prevDb.map((item, i) => (i === idx ? { ...item, ...updatedFields } : item));
       } else {
         nextDb = [
@@ -2345,9 +2347,22 @@ function App() {
       Object.values(STRENGTH_EXERCISES).forEach((ex) => { defaults[ex.id] = ex.default1RM; });
       setOneRMs({ ...defaults, ...target.oneRMs });
     }
-    if (target.customPcts && typeof target.customPcts === 'object') {
-      setCustomPcts((prev) => ({ ...prev, ...target.customPcts }));
-    }
+    const defaultCustomPcts = {
+      'backSquat_d1': 0.775,
+      'frontSquat_d1': 0.70,
+      'rdl_d1': 0.725,
+      'bulgarianSplitSquat_d8': 0.775,
+      'barbellWalkingLunges_d8': 0.725,
+      'trapBarDeadlift_d15': 0.80,
+      'backSquat_d15': 0.80,
+      'gobletSquat_d21': 0.575,
+      'dbPushPress_d21': 0.575,
+      'bentOverRow_d21': 0.575
+    };
+    setCustomPcts({
+      ...defaultCustomPcts,
+      ...(target.customPcts && typeof target.customPcts === 'object' ? target.customPcts : {})
+    });
     if (target.roxzoneTargetSec >= 12 && target.roxzoneTargetSec <= 60) {
       setRoxzoneTargetSec(Number(target.roxzoneTargetSec));
     }
@@ -2355,8 +2370,11 @@ function App() {
       setFractionationProfile(target.fractionationProfile);
     }
     setCompareIdA(target.id);
-    setDbBannerMsg(`Perfil "${target.name}" carregado e sincronizado em todas as abas e gráficos!`);
-    setTimeout(() => setDbBannerMsg(''), 4500);
+    const selectMsg = target.recordType === 'SNAPSHOT'
+      ? `Snapshot "${target.name}" aberto em modo visualização (histórico protegido contra alterações).`
+      : `Perfil "${target.name}" carregado e sincronizado com dados reais em todas as abas e gráficos!`;
+    setDbBannerMsg(selectMsg);
+    setTimeout(() => setDbBannerMsg(''), 5500);
   };
 
   const handleUpdateActiveAthleteMeta = (field, value) => {
@@ -2634,6 +2652,7 @@ function App() {
     }
     setSyncStatus('SYNCING');
     setSyncMessage('A enviar perfil e progresso para o Cloud Firestore...');
+    setDbBannerMsg('A enviar todo o Banco de Dados para o Cloud Firestore...');
     try {
       const snapshot = buildAthleteSyncSnapshot(cleanCode);
       const firestoreDoc = toFirestoreValue(snapshot).mapValue;
@@ -2644,15 +2663,26 @@ function App() {
         body: JSON.stringify(firestoreDoc)
       });
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+        let errDetail = `HTTP ${res.status}`;
+        try {
+          const errJson = await res.json();
+          if (errJson?.error?.message) errDetail = `HTTP ${res.status}: ${errJson.error.message}`;
+        } catch (_e) {}
+        throw new Error(errDetail);
       }
       setLastSyncedAt(snapshot.updatedAt);
       safeSetItem('hyrox_last_synced_at', snapshot.updatedAt);
       setSyncStatus('SYNCED');
-      setSyncMessage(`Sincronizado na nuvem com o código "${cleanCode}"!`);
+      const okMsg = `Banco de Dados (${athletesDatabase.length} registros) sincronizado na nuvem Firestore com o código "${cleanCode}"!`;
+      setSyncMessage(okMsg);
+      setDbBannerMsg(okMsg);
+      setTimeout(() => setDbBannerMsg(''), 6000);
     } catch (err) {
       setSyncStatus('ERROR');
-      setSyncMessage(`Dados guardados localmente. Nuvem Firebase indisponível ou projeto "${cleanProj}" ainda não publicado (${err.message}). Use Exportar JSON abaixo se desejar transferir já.`);
+      const errMsg = `Dados guardados localmente no navegador. Falha ao enviar para a nuvem (${err.message}). Use "Exportar Banco (.JSON)" para backup portátil.`;
+      setSyncMessage(errMsg);
+      setDbBannerMsg(errMsg);
+      setTimeout(() => setDbBannerMsg(''), 7000);
     }
   };
 
@@ -2697,7 +2727,10 @@ function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setSyncStatus('SYNCED');
-    setSyncMessage(`Arquivo JSON (${a.download}) exportado! Envie para o seu celular/PC e clique em Importar JSON.`);
+    const expMsg = `Arquivo JSON (${a.download}) exportado com ${athletesDatabase.length} registros reais! Envie para o seu celular/PC e clique em Importar (.JSON).`;
+    setSyncMessage(expMsg);
+    setDbBannerMsg(expMsg);
+    setTimeout(() => setDbBannerMsg(''), 6000);
   };
 
   const handleImportBackupJson = (event) => {
@@ -7414,6 +7447,20 @@ function App() {
                     </span>
                   </div>
 
+                  {activeAthleteRecord.recordType === 'SNAPSHOT' && (
+                    <div className="bg-purple-500/15 border border-purple-500/40 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <span className="text-purple-200 font-bold">
+                        Modo Visualização de Snapshot Histórico: o Auto-Save está pausado para não alterar esta fotografia.
+                      </span>
+                      <button
+                        onClick={() => handleSelectActiveAthlete(athletesDatabase.find((a) => a.recordType !== 'SNAPSHOT')?.id || 'atleta-principal')}
+                        className="px-3 py-1 rounded-lg bg-purple-500 hover:bg-purple-400 text-slate-950 font-black shrink-0"
+                      >
+                        Voltar ao Perfil Editável
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] uppercase font-bold text-slate-400 block mb-1">
@@ -7607,21 +7654,50 @@ function App() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <button
+                      type="button"
                       onClick={pushToCloudFirestore}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5"
+                      disabled={syncStatus === 'SYNCING'}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 disabled:opacity-60 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition-all"
                     >
                       <Cloud className="w-3.5 h-3.5" />
-                      Guardar Todo o Banco na Nuvem (Firestore)
+                      {syncStatus === 'SYNCING' ? 'Enviando...' : 'Guardar Todo o Banco na Nuvem (Firestore)'}
                     </button>
                     <button
+                      type="button"
                       onClick={handleExportBackupJson}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all"
                     >
                       <Download className="w-3.5 h-3.5 text-emerald-400" />
                       Exportar Banco (.JSON)
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-yellow-400" />
+                      Importar (.JSON)
+                    </button>
                   </div>
                 </div>
+
+                {/* Feedback Inline Visível Diretamente na Tabela do Banco de Dados */}
+                {dbBannerMsg && (
+                  <div className={`rounded-xl p-3 flex items-center justify-between text-xs font-bold border ${
+                    syncStatus === 'ERROR' && dbBannerMsg.includes('Falha')
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-200'
+                      : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200'
+                  }`}>
+                    <span>{dbBannerMsg}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDbBannerMsg('')}
+                      className="text-slate-300 hover:text-white px-2 py-0.5 rounded bg-slate-950/60 ml-2 shrink-0"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
@@ -7662,6 +7738,11 @@ function App() {
                                     SNAPSHOT
                                   </span>
                                 )}
+                                {rec.recordType === 'BENCHMARK' && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                                    REFERÊNCIA
+                                  </span>
+                                )}
                               </div>
                               <span className="text-[11px] text-slate-400 block">{rec.roleOrCategory || 'Atleta HYROX'}</span>
                             </td>
@@ -7697,7 +7778,12 @@ function App() {
                                   </button>
                                 )}
                                 <button
-                                  onClick={() => setCompareIdA(rec.id)}
+                                  type="button"
+                                  onClick={() => {
+                                    setCompareIdA(rec.id);
+                                    setDbBannerMsg(`Perfil A da comparação definido para: "${rec.name}". Veja o comparador abaixo.`);
+                                    setTimeout(() => setDbBannerMsg(''), 4000);
+                                  }}
                                   className={`px-2 py-1 rounded-lg font-bold text-[11px] border ${
                                     isCompA
                                       ? 'bg-yellow-400 text-slate-950 border-yellow-300'
@@ -7707,7 +7793,12 @@ function App() {
                                   Perfil A
                                 </button>
                                 <button
-                                  onClick={() => setCompareIdB(rec.id)}
+                                  type="button"
+                                  onClick={() => {
+                                    setCompareIdB(rec.id);
+                                    setDbBannerMsg(`Perfil B da comparação definido para: "${rec.name}". Veja o comparador abaixo.`);
+                                    setTimeout(() => setDbBannerMsg(''), 4000);
+                                  }}
                                   className={`px-2 py-1 rounded-lg font-bold text-[11px] border ${
                                     isCompB
                                       ? 'bg-cyan-400 text-slate-950 border-cyan-300'

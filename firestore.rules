@@ -23,6 +23,10 @@ rules_version = '2';
 //   - roxzoneTargetSec: int (required, 12..60) - Target seconds per Roxzone transition
 //   - fractionationProfile: string (required, enum: SAFE_80_20, BALANCED_PARETO, ELITE_DENSITY)
 //   - deviceLabel: string (optional, max 80 chars) - Source device identifier
+//   - runningZonesKmh: map (optional, max 8 keys) - Running zone speeds in km/h (Z1..Z5)
+//   - analyticsScope: string (optional, enum: CONFIRMED_ONLY, ALL_WITH_PLANNED) - Analytics inclusion scope
+//   - activeAthleteId: string (optional, 1..80 chars) - Currently active athlete profile ID
+//   - athletesDatabase: list (optional, max 50 items) - Multi-athlete profile snapshots list
 //
 // ===============================================================
 
@@ -83,12 +87,16 @@ service cloud.firestore {
           'divisionKey',
           'athleteWeight',
           'goalPace',
+          'runningZonesKmh',
+          'analyticsScope',
           'completedDays',
           'dayLogs',
           'oneRMs',
           'customPcts',
           'roxzoneTargetSec',
           'fractionationProfile',
+          'activeAthleteId',
+          'athletesDatabase',
           'deviceLabel'
         ]) &&
         data.schemaVersion == 1 &&
@@ -119,7 +127,11 @@ service cloud.firestore {
         data.roxzoneTargetSec >= 12 &&
         data.roxzoneTargetSec <= 60 &&
         data.fractionationProfile in ['SAFE_80_20', 'BALANCED_PARETO', 'ELITE_DENSITY'] &&
-        isValidOptionalString('deviceLabel', 0, 80);
+        isValidOptionalString('deviceLabel', 0, 80) &&
+        (!('runningZonesKmh' in data) || (data.runningZonesKmh is map && data.runningZonesKmh.size() <= 8)) &&
+        (!('analyticsScope' in data) || data.analyticsScope in ['CONFIRMED_ONLY', 'ALL_WITH_PLANNED']) &&
+        isValidOptionalString('activeAthleteId', 1, 80) &&
+        (!('athletesDatabase' in data) || (data.athletesDatabase is list && data.athletesDatabase.size() <= 50));
     }
 
     // ===============================================================

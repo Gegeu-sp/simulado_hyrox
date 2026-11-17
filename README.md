@@ -63,7 +63,12 @@ A aba **Analytics & Gráficos (7)** implementa um motor vetorial interativo em *
 
 Todas as atualizações estruturais e evolutivas do projeto são registradas abaixo:
 
-- **v1.8.0 (Atual) — Gráfico e Análise de Pareto (80/20) Dinâmico por Dia de Treino (`009-daily-workout-pareto-analysis`)**:
+- **v1.9.0 (Atual) — Auditoria Integral, Regras Firestore e Correção dos Botões do Banco de Dados (`010-database-buttons-real-data-audit`)**:
+  - **Correção das Regras do Cloud Firestore (`firestore.rules`)**: Inclusão dos campos `runningZonesKmh`, `analyticsScope`, `activeAthleteId` e `athletesDatabase` na allowlist com validação rigorosa de tipos e limites, desbloqueando o botão **"Guardar Todo o Banco na Nuvem (Firestore)"**;
+  - **Feedback Inline & Ações na Tabela *Registros Guardados no Banco de Dados***: Todos os botões (`Guardar na Nuvem`, `Exportar Banco (.JSON)`, `Importar (.JSON)`, `Abrir Ficha`, `Perfil A`, `Perfil B` e `Remover`) agora exibem confirmação visual imediata junto à tabela;
+  - **Proteção de Snapshots Históricos & Isolamento de Perfis**: Impede que o *Auto-Save* sobrescreva fotografias históricas (`SNAPSHOT`) quando abertas para visualização e evita vazamento de `customPcts` ao alternar entre atletas;
+  - **Paridade 100% com Dados Reais Confirmados**: Unificação da regra de contabilização entre os KPIs do cabeçalho (`stats`), a tabela do Banco de Dados (`computeRecordSummaryMetrics`) e os 7 Gráficos (`analyticsData`), removendo bônus artificiais em perfis zerados (`0/26` dias).
+- **v1.8.0 — Gráfico e Análise de Pareto (80/20) Dinâmico por Dia de Treino (`009-daily-workout-pareto-analysis`)**:
   - **Decomposição Dinâmica e Específica para Cada um dos 26 Dias de Treino**: O Gráfico de Pareto na aba *Analytics & Gráficos (7)* agora analisa os blocos, exercícios de força (`1RMs`), ergômetros, corrida prescrita e cargas oficiais da sessão diária selecionada (Dia 1 a Dia 26), permitindo otimizar a eficiência de cada treino individual;
   - **Controles Interativos Integrados**:
     - **Seletor de Escopo**: Alternância com 1 clique entre **"Treino do Dia (Dia X)"** (padrão) e **"Simulado Oficial Completo (Prova 8x1km + 8 Estações)"**;
